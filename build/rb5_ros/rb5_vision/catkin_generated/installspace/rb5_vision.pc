@@ -1,0 +1,8 @@
+prefix=/root/rostestws/install
+
+Name: rb5_vision
+Description: Description of rb5_vision
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib -lgstreamer
+Requires: roscpp rospy std_msgs sensor_msgs cv_bridge

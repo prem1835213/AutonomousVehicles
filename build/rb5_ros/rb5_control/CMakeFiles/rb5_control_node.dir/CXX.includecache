@@ -1,0 +1,44 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/opt/ros/melodic/include/serial/serial.h
+limits
+-
+vector
+-
+string
+-
+cstring
+-
+sstream
+-
+exception
+-
+stdexcept
+-
+serial/v8stdint.h
+-
+
+/opt/ros/melodic/include/serial/v8stdint.h
+stddef.h
+-
+stdio.h
+-
+stdint.h
+-
+
+/root/rostestws/src/rb5_ros/rb5_control/include/rb5_control/rb5_control.h
+serial/serial.h
+-
+
+/root/rostestws/src/rb5_ros/rb5_control/src/rb5_control_node.cpp
+bits/stdc++.h
+-
+rb5_control.h
+/root/rostestws/src/rb5_ros/rb5_control/src/rb5_control.h
+

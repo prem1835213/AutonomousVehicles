@@ -1,0 +1,8 @@
+prefix=/root/rostestws/devel
+
+Name: waypoint_parser
+Description: Description of waypoint_parser
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 
