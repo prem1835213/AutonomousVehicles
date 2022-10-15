@@ -1,2 +1,2 @@
-rb5_ros/waypoint_parser
--DCATKIN_DEVEL_PREFIX=/root/rostestws/devel -DCMAKE_INSTALL_PREFIX=/root/rostestws/install -DCATKIN_WHITELIST_PACKAGES=waypoint_parser -G Unix Makefiles
+rb5_ros/camera_info
+-DCATKIN_DEVEL_PREFIX=/root/rostestws/devel -DCMAKE_INSTALL_PREFIX=/root/rostestws/install -DCATKIN_WHITELIST_PACKAGES=camera_info -G Unix Makefiles

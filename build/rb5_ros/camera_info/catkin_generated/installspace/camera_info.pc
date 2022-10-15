@@ -1,0 +1,8 @@
+prefix=/root/rostestws/install
+
+Name: camera_info
+Description: Description of camera_info
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

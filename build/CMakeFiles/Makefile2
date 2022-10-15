@@ -405,52 +405,52 @@ clean: gtest/googlemock/gtest/CMakeFiles/gtest.dir/clean
 .PHONY : clean
 
 #=============================================================================
-# Directory level rules for directory rb5_ros/waypoint_parser
+# Directory level rules for directory rb5_ros/camera_info
 
 # Convenience name for "all" pass in the directory.
-rb5_ros/waypoint_parser/all:
+rb5_ros/camera_info/all:
 
-.PHONY : rb5_ros/waypoint_parser/all
+.PHONY : rb5_ros/camera_info/all
 
 # Convenience name for "clean" pass in the directory.
-rb5_ros/waypoint_parser/clean: rb5_ros/waypoint_parser/CMakeFiles/_catkin_empty_exported_target.dir/clean
+rb5_ros/camera_info/clean: rb5_ros/camera_info/CMakeFiles/_catkin_empty_exported_target.dir/clean
 
-.PHONY : rb5_ros/waypoint_parser/clean
+.PHONY : rb5_ros/camera_info/clean
 
 # Convenience name for "preinstall" pass in the directory.
-rb5_ros/waypoint_parser/preinstall:
+rb5_ros/camera_info/preinstall:
 
-.PHONY : rb5_ros/waypoint_parser/preinstall
+.PHONY : rb5_ros/camera_info/preinstall
 
 #=============================================================================
-# Target rules for target rb5_ros/waypoint_parser/CMakeFiles/_catkin_empty_exported_target.dir
+# Target rules for target rb5_ros/camera_info/CMakeFiles/_catkin_empty_exported_target.dir
 
 # All Build rule for target.
-rb5_ros/waypoint_parser/CMakeFiles/_catkin_empty_exported_target.dir/all:
-	$(MAKE) -f rb5_ros/waypoint_parser/CMakeFiles/_catkin_empty_exported_target.dir/build.make rb5_ros/waypoint_parser/CMakeFiles/_catkin_empty_exported_target.dir/depend
-	$(MAKE) -f rb5_ros/waypoint_parser/CMakeFiles/_catkin_empty_exported_target.dir/build.make rb5_ros/waypoint_parser/CMakeFiles/_catkin_empty_exported_target.dir/build
+rb5_ros/camera_info/CMakeFiles/_catkin_empty_exported_target.dir/all:
+	$(MAKE) -f rb5_ros/camera_info/CMakeFiles/_catkin_empty_exported_target.dir/build.make rb5_ros/camera_info/CMakeFiles/_catkin_empty_exported_target.dir/depend
+	$(MAKE) -f rb5_ros/camera_info/CMakeFiles/_catkin_empty_exported_target.dir/build.make rb5_ros/camera_info/CMakeFiles/_catkin_empty_exported_target.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/root/rostestws/build/CMakeFiles --progress-num= "Built target _catkin_empty_exported_target"
-.PHONY : rb5_ros/waypoint_parser/CMakeFiles/_catkin_empty_exported_target.dir/all
+.PHONY : rb5_ros/camera_info/CMakeFiles/_catkin_empty_exported_target.dir/all
 
 # Build rule for subdir invocation for target.
-rb5_ros/waypoint_parser/CMakeFiles/_catkin_empty_exported_target.dir/rule: cmake_check_build_system
+rb5_ros/camera_info/CMakeFiles/_catkin_empty_exported_target.dir/rule: cmake_check_build_system
 	$(CMAKE_COMMAND) -E cmake_progress_start /root/rostestws/build/CMakeFiles 0
-	$(MAKE) -f CMakeFiles/Makefile2 rb5_ros/waypoint_parser/CMakeFiles/_catkin_empty_exported_target.dir/all
+	$(MAKE) -f CMakeFiles/Makefile2 rb5_ros/camera_info/CMakeFiles/_catkin_empty_exported_target.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /root/rostestws/build/CMakeFiles 0
-.PHONY : rb5_ros/waypoint_parser/CMakeFiles/_catkin_empty_exported_target.dir/rule
+.PHONY : rb5_ros/camera_info/CMakeFiles/_catkin_empty_exported_target.dir/rule
 
 # Convenience name for target.
-_catkin_empty_exported_target: rb5_ros/waypoint_parser/CMakeFiles/_catkin_empty_exported_target.dir/rule
+_catkin_empty_exported_target: rb5_ros/camera_info/CMakeFiles/_catkin_empty_exported_target.dir/rule
 
 .PHONY : _catkin_empty_exported_target
 
 # clean rule for target.
-rb5_ros/waypoint_parser/CMakeFiles/_catkin_empty_exported_target.dir/clean:
-	$(MAKE) -f rb5_ros/waypoint_parser/CMakeFiles/_catkin_empty_exported_target.dir/build.make rb5_ros/waypoint_parser/CMakeFiles/_catkin_empty_exported_target.dir/clean
-.PHONY : rb5_ros/waypoint_parser/CMakeFiles/_catkin_empty_exported_target.dir/clean
+rb5_ros/camera_info/CMakeFiles/_catkin_empty_exported_target.dir/clean:
+	$(MAKE) -f rb5_ros/camera_info/CMakeFiles/_catkin_empty_exported_target.dir/build.make rb5_ros/camera_info/CMakeFiles/_catkin_empty_exported_target.dir/clean
+.PHONY : rb5_ros/camera_info/CMakeFiles/_catkin_empty_exported_target.dir/clean
 
 # clean rule for target.
-clean: rb5_ros/waypoint_parser/CMakeFiles/_catkin_empty_exported_target.dir/clean
+clean: rb5_ros/camera_info/CMakeFiles/_catkin_empty_exported_target.dir/clean
 
 .PHONY : clean
 

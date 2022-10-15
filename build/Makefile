@@ -294,7 +294,7 @@ _catkin_empty_exported_target: cmake_check_build_system
 
 # fast build rule for target.
 _catkin_empty_exported_target/fast:
-	$(MAKE) -f rb5_ros/waypoint_parser/CMakeFiles/_catkin_empty_exported_target.dir/build.make rb5_ros/waypoint_parser/CMakeFiles/_catkin_empty_exported_target.dir/build
+	$(MAKE) -f rb5_ros/camera_info/CMakeFiles/_catkin_empty_exported_target.dir/build.make rb5_ros/camera_info/CMakeFiles/_catkin_empty_exported_target.dir/build
 .PHONY : _catkin_empty_exported_target/fast
 
 # Help Target

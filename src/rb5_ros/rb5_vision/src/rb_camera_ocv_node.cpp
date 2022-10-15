@@ -236,7 +236,7 @@ int main(int argc, char *argv[]){
   private_nh.param("image_compress", _image_compress, true);
   ROS_INFO("image_compress: %d", _image_compress);
 
-  cam_pub = n.advertise<sensor_msgs::Image>(_topic_name.c_str(), 10);
+  cam_pub = n.advertise<sensor_msgs::Image>((_topic_name+std::string("/image_raw")).c_str(), 10);
   if (_image_compress) {
     cam_compress_pub = n.advertise<sensor_msgs::CompressedImage>((_topic_name+std::string("/compressed")).c_str(), 10);
   }

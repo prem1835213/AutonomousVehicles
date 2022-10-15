@@ -40,7 +40,7 @@ CATKIN_SKIP_TESTING:BOOL=OFF
 CATKIN_SYMLINK_INSTALL:BOOL=OFF
 
 //List of ';' separated packages to build
-CATKIN_WHITELIST_PACKAGES:STRING=waypoint_parser
+CATKIN_WHITELIST_PACKAGES:STRING=camera_info
 
 //Path to a program.
 CMAKE_AR:FILEPATH=/usr/bin/ar
@@ -317,6 +317,12 @@ april_detection_SOURCE_DIR:STATIC=/root/rostestws/src/rb5_ros/april_detection
 //The directory containing a CMake configuration file for apriltag.
 apriltag_DIR:PATH=/usr/local/share/apriltag/cmake
 
+//Value Computed by CMake
+camera_info_BINARY_DIR:STATIC=/root/rostestws/build/rb5_ros/camera_info
+
+//Value Computed by CMake
+camera_info_SOURCE_DIR:STATIC=/root/rostestws/src/rb5_ros/camera_info
+
 //The directory containing a CMake configuration file for catkin.
 catkin_DIR:PATH=/opt/ros/melodic/share/catkin/cmake
 
@@ -409,7 +415,7 @@ key_joy_BINARY_DIR:STATIC=/root/rostestws/build/rb5_ros/key_joy
 key_joy_SOURCE_DIR:STATIC=/root/rostestws/src/rb5_ros/key_joy
 
 //Path to a library.
-lib:FILEPATH=/opt/ros/melodic/lib/libserial.so
+lib:FILEPATH=/opt/ros/melodic/lib/libcv_bridge.so
 
 //The directory containing a CMake configuration file for message_filters.
 message_filters_DIR:PATH=/opt/ros/melodic/share/message_filters/cmake

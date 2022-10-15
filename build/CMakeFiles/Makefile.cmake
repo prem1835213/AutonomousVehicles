@@ -73,10 +73,10 @@ set(CMAKE_MAKEFILE_DEPENDS
   "catkin/catkin_generated/version/package.cmake"
   "catkin_generated/installspace/_setup_util.py"
   "catkin_generated/order_packages.cmake"
-  "rb5_ros/waypoint_parser/catkin_generated/package.cmake"
+  "rb5_ros/camera_info/catkin_generated/package.cmake"
   "/root/rostestws/src/CMakeLists.txt"
-  "/root/rostestws/src/rb5_ros/waypoint_parser/CMakeLists.txt"
-  "/root/rostestws/src/rb5_ros/waypoint_parser/package.xml"
+  "/root/rostestws/src/rb5_ros/camera_info/CMakeLists.txt"
+  "/root/rostestws/src/rb5_ros/camera_info/package.xml"
   "/usr/share/cmake-3.10/Modules/CMakeCInformation.cmake"
   "/usr/share/cmake-3.10/Modules/CMakeCXXInformation.cmake"
   "/usr/share/cmake-3.10/Modules/CMakeCommonLanguageInclude.cmake"
@@ -148,7 +148,7 @@ set(CMAKE_MAKEFILE_PRODUCTS
   "gtest/CMakeFiles/CMakeDirectoryInformation.cmake"
   "gtest/googlemock/CMakeFiles/CMakeDirectoryInformation.cmake"
   "gtest/googlemock/gtest/CMakeFiles/CMakeDirectoryInformation.cmake"
-  "rb5_ros/waypoint_parser/CMakeFiles/CMakeDirectoryInformation.cmake"
+  "rb5_ros/camera_info/CMakeFiles/CMakeDirectoryInformation.cmake"
   )
 
 # Dependency information for all targets:
@@ -162,5 +162,5 @@ set(CMAKE_DEPEND_INFO_FILES
   "gtest/googlemock/CMakeFiles/gmock.dir/DependInfo.cmake"
   "gtest/googlemock/gtest/CMakeFiles/gtest_main.dir/DependInfo.cmake"
   "gtest/googlemock/gtest/CMakeFiles/gtest.dir/DependInfo.cmake"
-  "rb5_ros/waypoint_parser/CMakeFiles/_catkin_empty_exported_target.dir/DependInfo.cmake"
+  "rb5_ros/camera_info/CMakeFiles/_catkin_empty_exported_target.dir/DependInfo.cmake"
   )

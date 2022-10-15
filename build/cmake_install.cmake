@@ -131,7 +131,7 @@ endif()
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
   include("/root/rostestws/build/gtest/cmake_install.cmake")
-  include("/root/rostestws/build/rb5_ros/waypoint_parser/cmake_install.cmake")
+  include("/root/rostestws/build/rb5_ros/camera_info/cmake_install.cmake")
 
 endif()
 
