@@ -16,13 +16,13 @@ ros::Subscriber image_sub;
 AprilDetection det;
 
 
-double distortion_coeff[] = {0.022327, 
-                             -0.019742, 
-                            -0.000961, 
-                            0.000625, 
+double distortion_coeff[] = {0.000607, 
+                             -0.013348, 
+                            0.000912, 
+                            -0.000291, 
                             0.000000};
-double intrinsics[] = {691.01615,    0.     ,  954.51,
-                       0.     ,  690.10114,  540.77467,
+double intrinsics[] = {668.55509,    0.     ,  947.4467,
+                       0.     ,  667.0197,  527.80753,
                        0.     ,    0.     ,    1.};
 
 const cv::Mat d(cv::Size(1, 5), CV_64FC1, distortion_coeff);
@@ -97,7 +97,7 @@ int main(int argc, char *argv[]){
   ros::NodeHandle private_nh("~");
 
   pose_pub = n.advertise<geometry_msgs::PoseArray>("/april_poses", 10); 
-  image_sub = n.subscribe("/camera_0", 1, imageCallback);
+  image_sub = n.subscribe("/camera_0/image_raw", 1, imageCallback);
   
   ros::spin();
   return 0;

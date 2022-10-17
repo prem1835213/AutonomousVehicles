@@ -21,10 +21,15 @@ class ImageCorrectorNode:
         C = np.array(C).reshape(3, 3)
         D = np.array(self.calib_data["distortion_coefficients"]["data"])
 
-        corrected_img = img.copy()
-        corrected_img = cv2.undistort(img, C, D)
+        new_camera_mtx, roi = cv2.getOptimalNewCameraMatrix(C, D, (w, h), 1, (w, h))
 
-        corrected_img_msg = bridge.cv2_to_imgmsg(corrected_img, "bgr8")
+        corrected_img = img.copy()
+        corrected_img = cv2.undistort(img, C, D, None, new_camera_mtx)
+
+        x, y, w, h = roi
+        corrected_img = corrected_img[y:y+h, x:x+w]
+
+        corrected_img_msg = bridge.cv2_to_imgmsg(corrected_img, "rgb8")
 
         self.pub.publish(corrected_img_msg)
 
