@@ -5,4 +5,4 @@
 # This file includes the relevant testing commands required for 
 # testing this directory and lists subdirectories to be tested as well.
 subdirs("gtest")
-subdirs("rb5_ros/camera_info")
+subdirs("rb5_ros/image_correction")

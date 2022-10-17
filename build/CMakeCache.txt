@@ -40,7 +40,7 @@ CATKIN_SKIP_TESTING:BOOL=OFF
 CATKIN_SYMLINK_INSTALL:BOOL=OFF
 
 //List of ';' separated packages to build
-CATKIN_WHITELIST_PACKAGES:STRING=camera_info
+CATKIN_WHITELIST_PACKAGES:STRING=image_correction
 
 //Path to a program.
 CMAKE_AR:FILEPATH=/usr/bin/ar
@@ -405,6 +405,12 @@ gtest_hide_internal_symbols:BOOL=OFF
 //Dependencies for the target
 gtest_main_LIB_DEPENDS:STATIC=general;-pthread;general;gtest;
 
+//Value Computed by CMake
+image_correction_BINARY_DIR:STATIC=/root/rostestws/build/rb5_ros/image_correction
+
+//Value Computed by CMake
+image_correction_SOURCE_DIR:STATIC=/root/rostestws/src/rb5_ros/image_correction
+
 //The directory containing a CMake configuration file for image_transport.
 image_transport_DIR:PATH=/opt/ros/melodic/share/image_transport/cmake
 
@@ -415,7 +421,7 @@ key_joy_BINARY_DIR:STATIC=/root/rostestws/build/rb5_ros/key_joy
 key_joy_SOURCE_DIR:STATIC=/root/rostestws/src/rb5_ros/key_joy
 
 //Path to a library.
-lib:FILEPATH=/opt/ros/melodic/lib/libcv_bridge.so
+lib:FILEPATH=/opt/ros/melodic/lib/libroscpp_serialization.so
 
 //The directory containing a CMake configuration file for message_filters.
 message_filters_DIR:PATH=/opt/ros/melodic/share/message_filters/cmake

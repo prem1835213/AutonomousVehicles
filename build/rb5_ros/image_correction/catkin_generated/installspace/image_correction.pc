@@ -1,0 +1,8 @@
+prefix=/root/rostestws/install
+
+Name: image_correction
+Description: Description of image_correction
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 
