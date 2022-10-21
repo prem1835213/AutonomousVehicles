@@ -1,2 +1,0 @@
-rb5_ros/ORB_SLAM3_RB5:rb5_ros/april_detection:rb5_ros/camera_info:rb5_ros/image_correction:rb5_ros/key_joy:rb5_ros/rb5_control:rb5_ros/rb5_vision:rb5_ros/waypoint_parser
--DCATKIN_DEVEL_PREFIX=/root/rostestws/devel -DCMAKE_INSTALL_PREFIX=/root/rostestws/install -G Unix Makefiles

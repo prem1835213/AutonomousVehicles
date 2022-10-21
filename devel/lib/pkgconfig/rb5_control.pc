@@ -1,8 +1,0 @@
-prefix=/root/rostestws/devel
-
-Name: rb5_control
-Description: Description of rb5_control
-Version: 0.0.0
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: roscpp serial rospy std_msgs sensor_msgs

@@ -1,8 +1,0 @@
-prefix=/root/rostestws/install
-
-Name: key_joy
-Description: Description of key_joy
-Version: 0.0.0
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 

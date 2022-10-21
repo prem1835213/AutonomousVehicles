@@ -1,8 +1,0 @@
-prefix=/root/rostestws/install
-
-Name: ORB_SLAM3_RB5
-Description: Description of ORB_SLAM3_RB5
-Version: 0.0.1
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: roscpp tf sensor_msgs image_transport cv_bridge
