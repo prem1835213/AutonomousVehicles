@@ -19,7 +19,7 @@ class Robot:
 		try:
 			(trans, rot) = self.tl.lookupTransform("world", "robot", rospy.Time(0))
 			roll, pitch, yaw = t.euler_from_quaternion(rot)
-		
+
 			pose = np.array([trans.x, trans.y, yaw])
 		except LookupException:
 			print("No world transform published")
@@ -31,7 +31,7 @@ class Robot:
 class Controller:
 	def __init__(self):
 		self.pub = rospy.Publisher("/joy", Joy, queue_size=10)
-	
+
 	def execute_command(self, command):
 		command_str, duration = command
 		joy_msg = Joy()
@@ -52,7 +52,7 @@ class Controller:
 			joy_msg.axes[0] = -1.0
 		else:
 			raise Exception("Unknown command given")
-		
+
 		self.pub.publish(joy_msg)
 		time.sleep(duration)
 
@@ -61,11 +61,11 @@ class Controller:
 		stop_joy_msg.axes = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 		stop_joy_msg.buttons = [0, 0, 0, 0, 0, 0, 0, 0]
 		self.pub.publish(stop_joy_msg)
-	
+
 class Planner:
 	def __init__(self):
 		pass
-	
+
 	def generate_command_sequence(self, pose1, pose):
 		x0, y0, theta0 = pose1
 		xf, yf, thetaf = pose2
@@ -77,7 +77,7 @@ class Planner:
 			command = ["rotate cw", 5.4 * (cur_theta / (2*np.pi))]
 		else:
 			command = ["rotate ccw", 5.4 * (abs(cur_theta) / (2*np.pi))]
-		
+
 		command_sequence.append(command)
 		cur_theta = 0
 
@@ -103,7 +103,7 @@ class Planner:
 		else:
 			command = ["backward", abs(d_y) * 5.4]
 		command_sequence.append(command)
-		
+
 		# turn to thetaf
 		thetaf = thetaf % (2*np.pi)
 		d_theta = thetaf - cur_theta
@@ -113,7 +113,7 @@ class Planner:
 			command = ["rotate cw", 5.4 * (abs(d_theta) / (2*np.pi))]
 		command_sequence.append(command)
 		cur_theta = thetaf
-		
+
 		return command_sequence
 
 
@@ -154,7 +154,7 @@ if __name__ == "__main__":
 	planner = Planner()
 	controller = Controller()
 	robot = Robot()
-	
+
 	waypoints = [np.array([0.0, 0.0, 0.0]), np.array([0.75, 0.0, 0.0])]
 	for i in range(len(waypoints)):
 		if i == 0:
@@ -172,7 +172,7 @@ if __name__ == "__main__":
 			command_str, duration = command
 			max_execute_duration = 2
 			controller.execute_command([command_str, min(duration, max_execute_duration)])
-			
+
 			if duration > max_execute_duration: # case where we cut it off for pose estimation
 				current_position = robot.estimate_pose()
 				duration_significant = True
@@ -189,19 +189,19 @@ if __name__ == "__main__":
 						if abs(np.pi - sub_wp[2]) < abs(0 - sub_wp[2]):
 							# we are intending on moving in y direction
 							delta = sub_wp[1] - current_position[1]
- 	        	else:
+                        else:
 							delta = sub_wp[0] - current_position[0]
 						if delta >= 0:
 							com = "forward"
 						else:
 							com = "backward"
 						dur = abs(delta) * 5.4
-          
+
 					controller.execute_command([com, min(dur, max_execute_duration)])
 					flag = dur > max_execute_duration
-          current_position = robot.estimate_pose()
-      
-			current_position = robot.estimate_pose()
+                    current_position = robot.estimate_pose()
+
+            current_position = robot.estimate_pose()
 
 		error = np.linalg.norm(current_position - waypoints[i])
     print("localization error")
