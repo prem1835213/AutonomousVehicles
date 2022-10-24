@@ -22,7 +22,7 @@ class PIDcontroller:
         """
         set the target pose.
         """
-        self.I = np.array([0.0,0.0,0.0]) 
+        self.I = np.array([0.0,0.0,0.0])
         self.lastError = np.array([0.0,0.0,0.0])
         self.target = np.array([targetx, targety, targetw])
 
@@ -30,7 +30,7 @@ class PIDcontroller:
         """
         set the target pose.
         """
-        self.I = np.array([0.0,0.0,0.0]) 
+        self.I = np.array([0.0,0.0,0.0])
         self.lastError = np.array([0.0,0.0,0.0])
         self.target = np.array(state)
 
@@ -40,7 +40,7 @@ class PIDcontroller:
         """
         result = targetState - currentState
         result[2] = (result[2] + np.pi) % (2 * np.pi) - np.pi
-        return result 
+        return result
 
     def setMaximumUpdate(self, mv):
         """
@@ -55,14 +55,14 @@ class PIDcontroller:
         e = self.getError(currentState, self.target)
 
         P = self.Kp * e
-        self.I = self.I + self.Ki * e * self.timestep 
+        self.I = self.I + self.Ki * e * self.timestep
         I = self.I
         D = self.Kd * (e - self.lastError)
         result = P + I + D
 
         self.lastError = e
 
-        # scale down the twist if its norm is more than the maximum value. 
+        # scale down the twist if its norm is more than the maximum value.
         resultNorm = np.linalg.norm(result)
         if(resultNorm > self.maximumValue):
             result = (result / resultNorm) * self.maximumValue
@@ -75,8 +75,8 @@ def genTwistMsg(desired_twist):
     Convert the twist to twist msg.
     """
     twist_msg = Twist()
-    twist_msg.linear.x = desired_twist[0] 
-    twist_msg.linear.y = desired_twist[1] 
+    twist_msg.linear.x = desired_twist[0]
+    twist_msg.linear.y = desired_twist[1]
     twist_msg.linear.z = 0
     twist_msg.angular.x = 0
     twist_msg.angular.y = 0
@@ -88,8 +88,34 @@ def coord(twist, current_state):
                   [-np.sin(current_state[2]), np.cos(current_state[2]), 0.0],
                   [0.0,0.0,1.0]])
     return np.dot(J, twist)
-    
 
+class Robot:
+	def __init__(self):
+		self.tl = tf.TransformListener()
+
+	def estimate_pose(self):
+		print("Estimating Pose..")
+		self.tl.waitForTransform("camera", "world", rospy.Time(0), rospy.Duration(1))
+		(trans, rot) = self.tl.lookupTransform("world", "camera", rospy.Time(0))
+		rot = t.quaternion_matrix(rot)
+
+		# z axis is +x in robot frame, rotate camera z axis by world rotation to get robot heading
+		rotated_z = np.matmul(rot, np.array([0, 0, 1, 1]).reshape(4, 1)).squeeze()
+		theta = np.arctan(rotated_z[1] / rotated_z[0])
+
+		x = rotated_z[0]
+		y = rotated_z[1]
+		if x <= 0 and y >= 0: # quadrant 2, arctan will produce negative theta_
+			theta = np.pi + theta
+		elif x <= 0 and y <= 0: # quadrant 3, arctan will produce positive theta_
+			theta = np.pi + theta
+		elif x >=0 and y <=0: # quadrant 4, arctan will produce negative theta_
+			theta = 2*np.pi + theta
+		pose = np.array([trans[0], trans[1], theta])
+		# roll, pitch, yaw = t.euler_from_quaternion(rot)
+		# pose = np.array([trans[0], trans[1], yaw])
+		# print(pose)
+		return pose
 
 if __name__ == "__main__":
 
@@ -107,7 +133,7 @@ if __name__ == "__main__":
 	current_state = np.array([0.0,0.0,0.0])
 
     # in this loop we will go through each way point.
-    # once error between the current state and the current way point is small enough, 
+    # once error between the current state and the current way point is small enough,
     # the current way point will be updated with a new point.
 	for wp in waypoint:
 		print("move to way point", wp)
@@ -133,4 +159,3 @@ if __name__ == "__main__":
 			current_state += update_value
     # stop the car and exit
 	pub_twist.publish(genTwistMsg(np.array([0.0,0.0,0.0])))
-
