@@ -1,10 +1,10 @@
 from megapi import MegaPi
 
 
-MFR = 10     # port for motor front right
-MBL = 11     # port for motor back left
-MBR = 2    # port for motor back right
-MFL = 3    # port for motor front left
+MFR = 10     # port for motor front right 10
+MBL = 11     # port for motor back left 11
+MBR = 2    # port for motor back right 2
+MFL = 3    # port for motor front left 3
 
 
 class MegaPiController:
@@ -39,8 +39,8 @@ class MegaPiController:
 
         C_FL = 1
         C_FR = 1
-        C_BL = 1.047
-        C_BR = 1.043
+        C_BL = 1 # 1.047
+        C_BR = 1 # 1.043
         self.bot.motorRun(self.mfl, C_FL * vfl)
         self.bot.motorRun(self.mfr, C_FR * vfr)
         self.bot.motorRun(self.mbl, C_BL * vbl)
@@ -97,7 +97,7 @@ if __name__ == "__main__":
     time.sleep(3)
     mpi_ctrl.carStraight(40)
     time.sleep(5.4)
-    mpi_ctrl.carRotate(40)
-    time.sleep(5.4)
+    # mpi_ctrl.carRotate(40)
+    # time.sleep(5.4)
     mpi_ctrl.carStop()
     # print("If your program cannot be closed properly, check updated instructions in google doc.")
