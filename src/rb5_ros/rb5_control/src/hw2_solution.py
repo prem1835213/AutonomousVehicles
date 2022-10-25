@@ -4,6 +4,7 @@ from tf import transformations as t
 import sys
 import rospy
 from geometry_msgs.msg import Twist
+from april_detection.msg import AprilTagDetectionArray
 import numpy as np
 
 """
@@ -18,7 +19,7 @@ class PIDcontroller:
         self.I = np.array([0.0,0.0,0.0])
         self.lastError = np.array([0.0,0.0,0.0])
         self.timestep = 0.1
-        self.maximumValue = 0.1
+        self.maximumValue = 0.025
 
     def setTarget(self, targetx, targety, targetw):
         """
@@ -92,11 +93,12 @@ def coord(twist, current_state):
     return np.dot(J, twist)
 
 class Robot:
-	def __init__(self):
+	def __init__(self, init_state):
 		self.tl = tf.TransformListener()
+		self.current_state = init_state
+		self.changed_at = time.time()
 
 	def estimate_pose(self):
-		print("Estimating Pose..")
 		self.tl.waitForTransform("camera", "world", rospy.Time(0), rospy.Duration(1))
 		(trans, rot) = self.tl.lookupTransform("world", "camera", rospy.Time(0))
 		rot = t.quaternion_matrix(rot)
@@ -119,47 +121,63 @@ class Robot:
 		# print(pose)
 		return pose
 
+	def update_state(self, apriltag_array):
+		detections = apriltag_array.detections
+		if len(detections) > 0:
+			self.current_state = self.estimate_pose()
+			self.changed_at = time.time()
+
 if __name__ == "__main__":
 
 	import time
 	rospy.init_node("hw1")
-	robot = Robot()
+	robot = Robot(init_state=np.array([0.0, 0.0, 0.0]))
+	rospy.Subscriber("/apriltag_detection_array", AprilTagDetectionArray, robot.update_state, queue_size=1)
 	pub_twist = rospy.Publisher("/twist", Twist, queue_size=1)
 
 	waypoint = np.array([[0.0, 0.0, 0.0], [0.75, 0.0, 0.0], [0.75, 1.5, np.pi], [0.0, 0.0, 0.0]])
-	waypoint = waypoint[:, :]
+	waypoint = waypoint[:4, :]
 
-		# init pid controller
-	pid = PIDcontroller(0.02, 0.005, 0.005)
+	# init pid controller
+	# 0.01, 0.001, 0.0 -- working well for first, slowing down and stalling at second
+	pid = PIDcontroller(0.0175, 0.001, 0.00025)
 
-    # init current state
+  # init current state
 	current_state = np.array([0.0,0.0,0.0])
-
-    # in this loop we will go through each way point.
-    # once error between the current state and the current way point is small enough,
-    # the current way point will be updated with a new point.
+	
+  # in this loop we will go through each way point.
+  # once error between the current state and the current way point is small enough,
+  # the current way point will be updated with a new point.
 	for wp in waypoint:
 		print("move to way point", wp)
-			 # set wp as the target point
+		# set wp as the target point
 		pid.setTarget(wp)
 
-        # calculate the current twist
+    # calculate the current twist
 		update_value = pid.update(current_state)
-        # publish the twist
+    # publish the twist
 		pub_twist.publish(genTwistMsg(coord(update_value, current_state)))
-        #print(coord(update_value, current_state))
+    # print(coord(update_value, current_state))
 		time.sleep(0.05)
-        # update the current state
-		current_state += update_value
-		while(np.linalg.norm(pid.getError(current_state, wp)) > 0.05): # check the error between current state and current way point
-            # calculate the current twist
-			update_value = pid.update(current_state)
-            # publish the twist
-			pub_twist.publish(genTwistMsg(coord(update_value, current_state)))
-            #print(coord(update_value, current_state))
-			time.sleep(0.05)
-            # update the current state
-			# current_state = robot.estimate_pose()
+    
+		# update the current state
+		if abs(time.time() - robot.changed_at) < 0.05:
+			current_state = robot.current_state
+		else:
 			current_state += update_value
+
+		while(np.linalg.norm(pid.getError(current_state, wp)) > 0.1): # check the error between current state and current way point
+      # calculate the current twist
+			update_value = pid.update(current_state)
+      # publish the twist
+			pub_twist.publish(genTwistMsg(coord(update_value, current_state)))
+      # print(coord(update_value, current_state))
+			time.sleep(0.05)
+      
+			# update the current state
+			if abs(time.time() - robot.changed_at) < 0.05:
+				current_state = robot.current_state
+			else:
+				current_state += update_value
     # stop the car and exit
 	pub_twist.publish(genTwistMsg(np.array([0.0,0.0,0.0])))

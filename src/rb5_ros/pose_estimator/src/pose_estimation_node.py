@@ -70,10 +70,16 @@ class PoseEstimator:
 			1: WorldTag(tag_type=1, translation=[1.197, 2.033, 0.399]),
 			2: WorldTag(tag_type=1, translation=[1.286, 0.885, 0.4195]),
 			3: WorldTag(tag_type=2, translation=[0.711, 2.13, 0.374]),
-			4: WorldTag(tag_type=3, translation=[-0.281, 1.157, 0.285]),
+			4: WorldTag(tag_type=3, translation=[-0.23, 1.46, 0.31]),
 			5: WorldTag(tag_type=3, translation=[-0.281, 0.386, 0.285]),
 			7: WorldTag(tag_type=4, translation=[0.148, -1.922, 0.339])
 		}
+		# self.markers = {
+			# 0: WorldTag(tag_type=3, translation=[0.0, 1.0, 0.092]),
+			# 1: WorldTag(tag_type=1, translation=[1.0, 0.0, 0.211])
+		# }
+		self.markers_used = [0, 4]
+		# self.markers_used = [0, 1]
 		# self.robot_T_cam = np.hstack([CAM_ROTATION, np.array([0.05, 0.02, 0.171]).reshape(3, 1)])
 		# self.robot_T_cam = np.vstack([self.robot_T_cam, np.array([0, 0, 0, 1]).reshape(1, 4)])
 
@@ -81,6 +87,7 @@ class PoseEstimator:
 	def april_callback(self, array_msg):
 		detections = array_msg.detections
 		ids_found = [det.id for det in detections]
+		ids_found = [id for id in ids_found if id in self.markers_used]
 		translations = []
 		rotations = []
 		for tag_id in ids_found:
@@ -93,14 +100,14 @@ class PoseEstimator:
 					rot = t.quaternion_from_matrix(world_P_cam)
 					translations.append(trans)
 					rotations.append(rot)
-					if tag_id in [0, 3, 4, 7]:
-						self.tb.sendTransform(trans, rot, rospy.Time.now(), "camera", "world")
-						print("Published world transform based on tag {}".format(tag_id))
+					self.tb.sendTransform(trans, rot, rospy.Time.now(), "camera", "world")
+					print("Published world transform based on tag {}".format(tag_id))
 				except LookupException:
 					continue
 
 if __name__ == "__main__":
+	print("Initializing Pose Estimator")
 	rospy.init_node("pose_estimator")
 	pose_node = PoseEstimator()
-	rospy.Subscriber("/apriltag_detection_array", AprilTagDetectionArray, pose_node.april_callback, queue_size=10)
+	rospy.Subscriber("/apriltag_detection_array", AprilTagDetectionArray, pose_node.april_callback, queue_size=1)
 	rospy.spin()
