@@ -157,7 +157,6 @@ if __name__ == "__main__":
         "theta"
     ] # used to zero-out error-term components to encourage straight motions
 
-
 	# init pid controller
 	pid = PIDcontroller(0.02, 0.005, 0.005)
 
@@ -168,6 +167,7 @@ if __name__ == "__main__":
         [0.0, 1e-3, .0],
         [0.0, 0.0, 1e-3]
     ])
+    tl = tf.TransformListener()
     kf = KalmanFilter(s0=current_state, sigma0=sigma0, dt=0.05)
 
 	for wp in waypoint:
@@ -182,23 +182,23 @@ if __name__ == "__main__":
 		time.sleep(0.05)
 
         # conduct estimation of state via KalmanFilter
-        # move and get measurement from looping over tf transform for markers
-        # we don't know all marker IDs in advance
-        s_pred, sigma_pred = kf.predict(twist_msg)
+        s_pred, sigma_pred = kf.predict(update_value)
         kf.update(s_pred, sigma_pred)
         current_state = kf.get_state()[:3, 0] # x, y, theta
 
         # update the current state
 		# current_state += update_value
-		while(np.linalg.norm(pid.getError(current_state, wp)) > 0.05): # check the error between current state and current way point
+		while(np.linalg.norm(pid.getError(current_state, wp)) > 0.05):
             # calculate the current twist
 			update_value = pid.update(current_state)
             # publish the twist
 			pub_twist.publish(genTwistMsg(coord(update_value, current_state)))
-            #print(coord(update_value, current_state))
 			time.sleep(0.05)
+
             # update the current state
-			# current_state = robot.estimate_pose()
-			current_state += update_value
+            s_pred, sigma_pred = kf.predict(update_value)
+            kf.update(s_pred, sigma_pred)
+            current_state = kf.get_state()[:3, 0] # x, y, theta
+
     # stop the car and exit
 	pub_twist.publish(genTwistMsg(np.array([0.0,0.0,0.0])))
