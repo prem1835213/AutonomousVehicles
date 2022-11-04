@@ -168,7 +168,7 @@ if __name__ == "__main__":
         [0.0, 0.0, 1e-3]
     ])
     tl = tf.TransformListener()
-    kf = KalmanFilter(s0=current_state, sigma0=sigma0, dt=0.05)
+    kf = KalmanFilter(s0=current_state, sigma0=sigma0)
 
 	for wp in waypoint:
 		print("move to way point", wp)

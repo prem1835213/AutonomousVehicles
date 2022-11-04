@@ -7,7 +7,7 @@ from scipy.linalg import block_diag
 
 
 class KalmanFilter:
-    def __init__(self, s0, sigma0, dt, calibration):
+    def __init__(self, s0, sigma0):
         r = 0.025 # radius of wheel
         lx = 0.055 # half of distance between front wheel and back wheel
         ly = 0.07 # half of distance between left wheel and right wheel
