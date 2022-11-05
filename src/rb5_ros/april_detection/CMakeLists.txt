@@ -114,8 +114,8 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES april_detection
-  CATKIN_DEPENDS
-  roscpp
+  CATKIN_DEPENDS 
+  roscpp 
   rospy
   std_msgs
   sensor_msgs

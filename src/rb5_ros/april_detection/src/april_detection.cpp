@@ -21,7 +21,7 @@ AprilDetection::AprilDetection(){
   //a_detector->refine_edges = getopt_get_bool(getopt, "refine-edges");
 
   apriltag_detector_add_family(a_detector, tf);
-
+  
 
   return;
 }
@@ -32,13 +32,13 @@ AprilDetection::~AprilDetection(){
 
 tuple<vector<apriltag_pose_t>, vector<int>, cv::Mat> AprilDetection::processImage(cv::Mat image){
 
-  cv::Mat image_gray;
+  cv::Mat image_gray; 
   cv::cvtColor(image, image_gray, cv::COLOR_BGR2GRAY);
 
   image_u8_t im = { .width  = image_gray.cols,
                     .height = image_gray.rows,
-                    .stride = image_gray.cols,
-                    .buf    = image_gray.data
+                    .stride = image_gray.cols, 
+                    .buf    = image_gray.data 
   };
 
   zarray_t * detections = apriltag_detector_detect(a_detector, &im);
@@ -59,7 +59,7 @@ tuple<vector<apriltag_pose_t>, vector<int>, cv::Mat> AprilDetection::processImag
     ids.push_back(det->id);
 
   }
-
+  
   return make_tuple(poses, ids, image);
 
 }

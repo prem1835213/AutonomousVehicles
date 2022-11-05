@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """ MegaPi Controller ROS Wrapper"""
 import rospy
-
+import os
 from geometry_msgs.msg import Twist
 from mpi_control import MegaPiController
 import numpy as np
@@ -13,7 +13,12 @@ class MegaPiControllerNode:
         self.r = 0.025 # radius of the wheel
         self.lx = 0.055 # half of the distance between front wheel and back wheel
         self.ly = 0.07 # half of the distance between left wheel and right wheel
-        self.calibration = 150.0
+        # self.calibration = 150.0
+        self.calibration = os.getenv("TWIST_CALIBRATION")
+        if self.calibration is not None:
+            self.calibration = float(self.calibration)
+        else:
+            raise KeyError("TWIST_CALIBRATION NOT SET")
 
     def twist_callback(self, twist_cmd):
         desired_twist = self.calibration * np.array([[twist_cmd.linear.x], [twist_cmd.linear.y], [twist_cmd.angular.z]])
@@ -27,11 +32,11 @@ class MegaPiControllerNode:
 
         # send command to each wheel
         self.mpi_ctrl.setFourMotors(-1 * result[0][0], result[1][0], -1 * result[2][0], result[3][0])
-        
+
 
 if __name__ == "__main__":
     mpi_ctrl_node = MegaPiControllerNode()
     rospy.init_node('megapi_controller')
-    rospy.Subscriber('/twist', Twist, mpi_ctrl_node.twist_callback, queue_size=1) 
-    
+    rospy.Subscriber('/twist', Twist, mpi_ctrl_node.twist_callback, queue_size=1)
+
     rospy.spin()
