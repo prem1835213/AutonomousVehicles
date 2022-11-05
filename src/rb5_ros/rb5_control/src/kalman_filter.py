@@ -1,0 +1,131 @@
+import tf
+import rospy
+import numpy as np
+import tf.transformations as t
+import os
+import math
+from scipy.linalg import block_diag
+from april_detection.msg import AprilTagDetectionArray
+from geometry_msgs.msg import Twist
+
+
+class KalmanFilter:
+
+	def __init__(self, init_state):
+		self.s = init_state
+		self.sigma = 1e-5 * np.eye(3)
+		
+		self.R = 1e-5 * np.eye(3) # measurement uncertainity, calibrate from pose samples
+		self.Q = 1e-5 * np.eye(3) # system uncertainity
+		self.init_tag_uncertainty = 1e-5 * np.eye(3) # uncertainty of tag pose when expanding state
+		
+		self.landmarks_seen = []
+		self.landmark2idx = {}
+		
+		self.tl = tf.TransformListener()
+
+	def _update_state(self, found_ids):
+		# create H
+		H_right = [np.eye(3) if id in found_ids else np.zeros((3,3)) for id in self.landmarks_seen]
+		H_right = block_diag(*H_right) # 3k x (d-3)
+		H_left = [-1 * np.eye(3)] * len(known_ids)
+		H_left = np.vstack(H_left) # 3k x 3
+		H = np.hstack([H_left, H_right])
+		assert H.shape[0] == 3*len(found_ids) and H.shape[1] == self.s.shape[0]
+		
+		# rotate H to robot frame
+		theta_r = self.s[2][0]
+		w_R_r = np.array([
+			[np.cos(theta_r), -np.sin(theta_r), 0.0],
+			[np.sin(theta_r), np.cos(theta_r), 0.0],
+			[0.0, 0.0, 1.0]
+		])
+		r_R_w = w_R_r.T
+		
+		H = np.matmul(r_R_w, H)
+		
+		# create z in robot frame
+		z = []
+		for id in self.landmarks_seen:
+			marker_name = "marker_".format(id)
+			if id in found_ids:
+				try:
+					now = rospy.Time()
+					self.tl.waitForTransform("robot", marker_name, now, rospy.Duration(0.1))
+					(trans, rot) = self.tl.lookupTransform("robot", marker_name, now)
+					rot = t.quaternion_matrix(rot)
+					r_theta_t = math.atan2(rot[1][2] / rot[0][2])
+					z += [trans[0], trans[1], r_theta_t]
+				except tf.LookupException:
+					print("TF LOOKUP EXCEPTION tag in robot")
+					print(e)
+		z = np.array(z).reshape(-1, 1) # 3k x 1
+		assert z.shape[0] == 3*len(found_ids)
+		
+		# create S
+		R = [self.R] * len(found_ids)
+		R = block_diag(*R)
+		S = np.matmul(H, np.matmul(self.sigma, H.T)) + R # 3k x 3k
+		assert S.shape[0] == 3*len(found_ids) and S.shape[1] == 3*len(found_ids)
+		
+		# create K
+		K = np.matmul(self.sigma, np.matmul(H.T, np.linalg.inv(S))) # d x 3k
+		assert K.shape[0] == self.s.shape[0] and K.shape[1] == 3*len(found_ids)
+		
+		# update
+		error = z - np.dot(H, self.s)
+		error[::-3][::-1] = (error[::-3][::-1] + np.pi) % (2*np.pi) - np.pi # put angles back in -pi to pi
+		self.s = self.s + np.matmul(K, error)
+		self.sigma = np.matmul(np.eye(self.s.shape[0]) - np.matmul(K, H), self.sigma)
+
+	def _expand_state(self, unknown_ids):
+		print("Expanding State for ids: ", unknown_ids)
+		for id in unknown_ids:
+			marker_name = "marker_{}".format(id)
+			self.landmarks_seen.append(id)
+			try:
+				# utilize pose of robot in map frame published by predict step
+				now = rospy.Time()
+				self.tl.waitForTransform("map", marker_name, now, rospy.Duration(0.1)
+				(trans, rot) = self.tl.lookupTransform("map", marker_name, now)
+				rot = t.quaternion_matrix(rot)
+				
+				# calculate tag pose in map frame
+				m_theta_t = math.atan2(rot[1][2] / rot[0][2])
+				m_P_tag = np.array([trans[0], trans[1], m_theta_t])
+				self.s = np.vstack([self.s, m_P_tag])
+				self.sigma = block_diag(self.sigma, self.init_tag_uncertainty)
+			except tf.LookupException:
+				print("TF LOOKUP EXCEPTION tag in map")
+
+	def predict(self, update_value):
+		update_value = update_value.reshape(-1,1)
+		assert update_value.shape[0] == 3 and update_value.shape[1] == 1
+
+		self.s[:3] = self.s[:3] + update_value_w # F & G are identity matrix
+		Q = [self.Q] * self.s.shape[0]
+		Q = block_diag(*Q)
+		
+		self.sigma = self.sigma + Q # F is identity matrix
+		
+		self._publish_pose() # publish pose to use in state expansion
+
+	def update(self, ids_found):
+		known_ids = list(set(self.landmarks_seen).intersection(set(ids_found)))
+		unknown_ids = list(set(ids_found).difference(set(self.landmarks_seen)))
+		
+		if len(known_ids) > 0:
+			# update based upon tags seen currently in view
+			self._update_state(ids_found)
+		
+		if len(unknown_ids) > 0:
+			# expand state to include new landmarks
+			self._expand_state(unknown_ids)
+		
+	def _publish_pose(self):
+		trans = np.zeros(3)
+		trans[:2] = self.s[:2].squeeze()
+		q = t.quaternion_from_euler(0, 0, self.s[2][0])
+
+		self.tb.sendTransform(trans, q, rospy.Time(), "robot", "map")
+

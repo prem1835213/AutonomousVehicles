@@ -4,7 +4,7 @@ import numpy as np
 import os
 import math
 from scipy.linalg import block_diag
-
+from april_detection.msg import AprilTagDetectionArray
 
 class KalmanFilter:
 	def __init__(self, s0, sigma0):
@@ -12,6 +12,8 @@ class KalmanFilter:
 		lx = 0.055 # half of distance between front wheel and back wheel
 		ly = 0.07 # half of distance between left wheel and right wheel
 		denom = lx + ly
+
+		self.frames_avail = []
 
 		self.calibration = 150.0
 		os.environ["TWIST_CALIBRATION"] = "150.0"
@@ -35,6 +37,7 @@ class KalmanFilter:
 			[0, 0, 0],
 			[0, 0, 0]
 		])
+		
 
 		self.landmarks_seen = []
 		self.landmark2idx = {}
@@ -52,6 +55,10 @@ class KalmanFilter:
 		angle = (angle + np.pi) % (2 * np.pi) - np.pi
 		return angle
 
+	def set_frames_avail(self, array_msg):
+		ids = [det.id for det in array_msg.detections]
+		self.frames_avail = ["marker_{}".format(id) for id in ids]
+		print(self.frames_avail)
 	def predict(self, update_value):
 		# given that update_value is in world frame and if PID is calibrated properly, it will be equal to deltas, is there a need for Gu?
 		update_value = update_value.squeeze().reshape(3, 1)
@@ -139,9 +146,11 @@ class KalmanFilter:
 		# first calculate error with already seen landmarks STILL in view
 		# update s and sigma
 		# add new landmarks to state, expand sigma
+		print("Frames available: ")
+		print(self.frames_avail)
 
-		frames_avail = self.tl.getFrameStrings()
-		landmarks_avail = set([name for name in frames_avail if "marker" in name])
+		landmarks_avail = set([name for name in self.frames_avail if "marker" in name])
+		print("Landmarks Available: ", landmarks_avail)
 		still_in_view = list(landmarks_avail.intersection(set(self.landmarks_seen)))
 		new_landmarks = list(landmarks_avail - set(self.landmarks_seen))
 		if len(still_in_view) > 0:
@@ -161,7 +170,7 @@ class KalmanFilter:
 		# expand s, sigma, Q for new landmarks
 		for i in range(len(new_landmarks)):
 			marker_name = new_landmarks[i]
-
+			print("New marker detected: ", marker_name)
 			self.landmarks_seen.append(marker_name)
 			tag_x_idx = len(self.s)
 			tag_y_idx = tag_x_idx + 1
