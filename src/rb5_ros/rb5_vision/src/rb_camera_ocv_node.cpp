@@ -68,15 +68,15 @@ static GstFlowReturn processData(GstElement * sink, RbCamera::CustomData * data)
     bridge = cv_bridge::CvImage(header, sensor_msgs::image_encodings::RGB8, frame_rgb);
     bridge.toImageMsg(cam_msg);
     cam_pub.publish(cam_msg);
-    
-    // Publish camera frame 
+
+    // Publish camera frame
     if (_image_compress) {
       sensor_msgs::CompressedImage cam_compress_msg;
       cam_compress_msg.header.stamp = header.stamp;
       std::vector<int> p;
       p.push_back(cv::IMWRITE_JPEG_QUALITY);
       p.push_back(90);
-      
+
       cv::Mat frame_bgr = cv::Mat::zeros(width, height, CV_8UC3);
       cv::cvtColor(frame_rgb, frame_bgr, cv::COLOR_RGB2BGR);
       cv::imencode(".jpg", frame_bgr, cam_compress_msg.data, p);
@@ -112,11 +112,11 @@ RbCamera::RbCamera(
   input_format = input_format_;
   output_format = output_format_;
 
-  std::string input_caps = "video/x-raw,format=" + input_format + 
-                           ",framerate=" + std::to_string(frame_rate) + "/1" + 
-                           ",width=" + std::to_string(width) + 
+  std::string input_caps = "video/x-raw,format=" + input_format +
+                           ",framerate=" + std::to_string(frame_rate) + "/1" +
+                           ",width=" + std::to_string(width) +
                            ",height=" + std::to_string(height);
-  
+
   std::string output_caps = "video/x-raw,format=" + output_format;
 
   std::cout << "input caps: " << input_caps << std::endl;
@@ -251,4 +251,3 @@ int main(int argc, char *argv[]){
   );
   cam.init();
 }
-
