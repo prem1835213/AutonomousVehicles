@@ -12,17 +12,19 @@ from geometry_msgs.msg import Twist
 class KalmanFilter:
 
 	def __init__(self, init_state):
-		self.s = init_state
+		self.s = init_state.reshape(-1, 1)
+		assert self.s.shape[0] == 3 and self.s.shape[1] == 1
 		self.sigma = 1e-5 * np.eye(3)
 		
-		self.R = 1e-5 * np.eye(3) # measurement uncertainity, calibrate from pose samples
-		self.Q = 1e-5 * np.eye(3) # system uncertainity
+		self.R = 0 * np.eye(3) # measurement uncertainity, calibrate from pose samples
+		self.Q = 0 * np.eye(3) # system uncertainity
 		self.init_tag_uncertainty = 1e-5 * np.eye(3) # uncertainty of tag pose when expanding state
 		
 		self.landmarks_seen = []
 		self.landmark2idx = {}
 		
 		self.tl = tf.TransformListener()
+		self.tb = tf.TransformBroadcaster()
 
 	def _update_state(self, found_ids):
 		# create H
@@ -83,32 +85,30 @@ class KalmanFilter:
 		for id in unknown_ids:
 			marker_name = "marker_{}".format(id)
 			self.landmarks_seen.append(id)
-			try:
-				# utilize pose of robot in map frame published by predict step
-				now = rospy.Time()
-				self.tl.waitForTransform("map", marker_name, now, rospy.Duration(0.1)
-				(trans, rot) = self.tl.lookupTransform("map", marker_name, now)
-				rot = t.quaternion_matrix(rot)
-				
-				# calculate tag pose in map frame
-				m_theta_t = math.atan2(rot[1][2] / rot[0][2])
-				m_P_tag = np.array([trans[0], trans[1], m_theta_t])
-				self.s = np.vstack([self.s, m_P_tag])
-				self.sigma = block_diag(self.sigma, self.init_tag_uncertainty)
-			except tf.LookupException:
-				print("TF LOOKUP EXCEPTION tag in map")
+			# utilize pose of robot in map frame published by predict step
+			now = rospy.Time()
+			self.tl.waitForTransform("robot", marker_name, now, rospy.Duration(0.1))
+			(trans, rot) = self.tl.lookupTransform("robot", marker_name, now)
+			
+			m_P_t = self.get_object_pose(trans, rot)
+			trans = t.translation_from_matrix(m_P_t)
+			
+			# calculate tag pose in map frame
+			m_theta_t = math.atan2(m_P_t[1][2], m_P_t[0][2])
+			m_P_tag = np.array([trans[0], trans[1], m_theta_t]).reshape(-1, 1)
+			self.s = np.vstack([self.s, m_P_tag])
+			self.sigma = block_diag(self.sigma, self.init_tag_uncertainty)
 
 	def predict(self, update_value):
 		update_value = update_value.reshape(-1,1)
 		assert update_value.shape[0] == 3 and update_value.shape[1] == 1
-
-		self.s[:3] = self.s[:3] + update_value_w # F & G are identity matrix
-		Q = [self.Q] * self.s.shape[0]
+		print(self.s.shape)
+		self.s[:3] = self.s[:3] + update_value # F & G are identity matrix
+		Q = [self.Q] * int(self.s.shape[0] / 3)
 		Q = block_diag(*Q)
 		
 		self.sigma = self.sigma + Q # F is identity matrix
 		
-		self._publish_pose() # publish pose to use in state expansion
 
 	def update(self, ids_found):
 		known_ids = list(set(self.landmarks_seen).intersection(set(ids_found)))
@@ -122,10 +122,21 @@ class KalmanFilter:
 			# expand state to include new landmarks
 			self._expand_state(unknown_ids)
 		
-	def _publish_pose(self):
+	def get_robot_pose(self):
+		"""Returns robot pose in map frame"""
 		trans = np.zeros(3)
 		trans[:2] = self.s[:2].squeeze()
 		q = t.quaternion_from_euler(0, 0, self.s[2][0])
+		
+		m_T_r = t.concatenate_matrices(t.translation_matrix(trans), t.quaternion_matrix(q))
+		return m_T_r
+	
+	def get_object_pose(self, obj_trans, obj_q):
+		"""Returns an objects pose in map frame given pose in robot frame"""
+		m_T_r = self.get_robot_pose()
+		r_P_o = t.concatenate_matrices(t.translation_matrix(obj_trans), t.quaternion_matrix(obj_q))
+		m_P_o = np.matmul(m_T_r, r_P_o)
+		return m_P_o
 
-		self.tb.sendTransform(trans, q, rospy.Time(), "robot", "map")
-
+	def get_state(self):
+		return self.s
