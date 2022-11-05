@@ -53,7 +53,7 @@ tuple<vector<apriltag_pose_t>, vector<int>, cv::Mat> AprilDetection::processImag
     info.det = det;
     apriltag_pose_t pose;
 
-    // estimate SE(3) pose 
+    // estimate SE(3) pose
     estimate_tag_pose(&info, &pose);
     poses.push_back(pose);
     ids.push_back(det->id);
