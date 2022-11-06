@@ -6,92 +6,92 @@ import sys
 import rospy
 from geometry_msgs.msg import Twist
 import numpy as np
-from kalman import KalmanFilter
+from kalman_filter import KalmanFilter
+from frame_collector import FrameCollector
+from april_detection.msg import AprilTagDetectionArray
 
 """
 The class of the pid controller.
 """
 class PIDcontroller:
-    def __init__(self, Kp, Ki, Kd):
-        self.Kp = Kp
-        self.Ki = Ki
-        self.Kd = Kd
-        self.target = None
-        self.I = np.array([0.0,0.0,0.0])
-        self.lastError = np.array([0.0,0.0,0.0])
-        self.timestep = 0.1
-        self.maximumValue = 0.1
+	def __init__(self, Kp, Ki, Kd):
+		self.Kp = Kp
+		self.Ki = Ki
+		self.Kd = Kd
+		self.target = None
+		self.I = np.array([0.0,0.0,0.0])
+		self.lastError = np.array([0.0,0.0,0.0])
+		self.timestep = 0.1
+		self.maximumValue = 0.1
 
-    def setTarget(self, targetx, targety, targetw):
-        """
-        set the target pose.
-        """
-        self.I = np.array([0.0,0.0,0.0])
-        self.lastError = np.array([0.0,0.0,0.0])
-        self.target = np.array([targetx, targety, targetw])
+	def setTarget(self, targetx, targety, targetw):
+		"""set the target pose."""
+		self.I = np.array([0.0,0.0,0.0])
+		self.lastError = np.array([0.0,0.0,0.0])
+		self.target = np.array([targetx, targety, targetw])
 
-    def setTarget(self, state):
-        """
-        set the target pose.
-        """
-        self.I = np.array([0.0,0.0,0.0])
-        self.lastError = np.array([0.0,0.0,0.0])
-        self.target = np.array(state)
+	def setTarget(self, state):
+		"""
+		set the target pose.
+		"""
+		self.I = np.array([0.0,0.0,0.0])
+		self.lastError = np.array([0.0,0.0,0.0])
+		self.target = np.array(state)
 
-    def getError(self, currentState, targetState):
-        """
-        return the different between two states
-        """
-        result = targetState - currentState
-        result[2] = (result[2] + np.pi) % (2 * np.pi) - np.pi
-        return result
+	def getError(self, currentState, targetState):
+		"""
+		return the different between two states
+		"""
+		result = targetState - currentState
+		result[2] = (result[2] + np.pi) % (2 * np.pi) - np.pi
+		return result
 
-    def setMaximumUpdate(self, mv):
-        """
-        set maximum velocity for stability.
-        """
-        self.maximumValue = mv
+	def setMaximumUpdate(self, mv):
+		"""
+		set maximum velocity for stability.
+		"""
+		self.maximumValue = mv
 
-    def update(self, currentState):
-        """
-        calculate the update value on the state based on the error between current state and target state with PID.
-        """
-        e = self.getError(currentState, self.target)
+	def update(self, currentState):
+		"""
+		calculate the update value on the state based on the error between current state and target state with PID.
+		"""
+		e = self.getError(currentState, self.target)
 
-        P = self.Kp * e
-        self.I = self.I + self.Ki * e * self.timestep
-        I = self.I
-        D = self.Kd * (e - self.lastError)
-        result = P + I + D
+		P = self.Kp * e
+		self.I = self.I + self.Ki * e * self.timestep
+		I = self.I
+		D = self.Kd * (e - self.lastError)
+		result = P + I + D
 
-        self.lastError = e
+		self.lastError = e
 
-        # scale down the twist if its norm is more than the maximum value.
-        resultNorm = np.linalg.norm(result)
-        if(resultNorm > self.maximumValue):
-            result = (result / resultNorm) * self.maximumValue
-            self.I = 0.0
+		# scale down the twist if its norm is more than the maximum value.
+		resultNorm = np.linalg.norm(result)
+		if(resultNorm > self.maximumValue):
+			result = (result / resultNorm) * self.maximumValue
+			self.I = 0.0
 
-        return result
+		return result
 
 def genTwistMsg(desired_twist):
-    """
-    Convert the twist to twist msg.
-    """
-    twist_msg = Twist()
-    twist_msg.linear.x = desired_twist[0]
-    twist_msg.linear.y = desired_twist[1]
-    twist_msg.linear.z = 0
-    twist_msg.angular.x = 0
-    twist_msg.angular.y = 0
-    twist_msg.angular.z = desired_twist[2]
-    return twist_msg
+	"""
+	Convert the twist to twist msg.
+	"""
+	twist_msg = Twist()
+	twist_msg.linear.x = desired_twist[0]
+	twist_msg.linear.y = desired_twist[1]
+	twist_msg.linear.z = 0
+	twist_msg.angular.x = 0
+	twist_msg.angular.y = 0
+	twist_msg.angular.z = desired_twist[2]
+	return twist_msg
 
 def coord(twist, current_state):
-    J = np.array([[np.cos(current_state[2]), np.sin(current_state[2]), 0.0],
-                  [-np.sin(current_state[2]), np.cos(current_state[2]), 0.0],
-                  [0.0,0.0,1.0]])
-    return np.dot(J, twist)
+	J = np.array([[np.cos(current_state[2]), np.sin(current_state[2]), 0.0],
+				  [-np.sin(current_state[2]), np.cos(current_state[2]), 0.0],
+				  [0.0,0.0,1.0]])
+	return np.dot(J, twist)
 
 class Robot:
 	def __init__(self):
@@ -131,74 +131,68 @@ if __name__ == "__main__":
 	waypoint = np.array([[0.0, 0.0, 0.0], [0.75, 0.0, 0.0], [0.75, 1.5, np.pi], [0.0, 0.0, 0.0]])
 	waypoint = waypoint[:, :]
 
-    # drive in square -- only consider errors for specific directions
-    # start at [6, 2, pi/2] drive in square CCW
-    waypoint = [
-        [0.0, 0.0, 0.0],
-        [4.0, 0.0, 0.0],
-        [4.0, 0.0, np.pi/2],
-        [4.0, 4.0, np.pi/2],
-        [4.0, 4.0, np.pi],
-        [0.0, 4.0, np.pi],
-        [0.0, 4.0, -np.pi/2],
-        [0.0, 0.0, -np.pi/2],
-        [0.0, 0.0, 0.0]
-    ]
-    # zeroing-out error terms might not be a good idea because it will prevent proper correction
-    directions = [
-        "stationary",
-        "x",
-        "theta",
-        "y",
-        "theta",
-        "x",
-        "theta",
-        "y",
-        "theta"
-    ] # used to zero-out error-term components to encourage straight motions
+	# drive in square -- only consider errors for specific directions
+	# start at [6, 2, pi/2] drive in square CCW
+	# waypoint = [
+	#     [0.0, 0.0, 0.0],
+	#     [4.0, 0.0, 0.0],
+	#     [4.0, 0.0, np.pi/2],
+	#     [4.0, 4.0, np.pi/2],
+	#     [4.0, 4.0, np.pi],
+	#     [0.0, 4.0, np.pi],
+	#     [0.0, 4.0, -np.pi/2],
+	#     [0.0, 0.0, -np.pi/2],
+	#     [0.0, 0.0, 0.0]
+	# ]
+	waypoint = [[0.0, 0.0, 0.0], [0.75, 0.0, 0.0]]
+	# zeroing-out error terms might not be a good idea because it will prevent proper correction
 
 	# init pid controller
-	pid = PIDcontroller(0.02, 0.005, 0.005)
+	pid = PIDcontroller(0.0175, 0.001, 0.00025)
 
-    # init current state
+	# init current state
 	current_state = np.array([0.0,0.0,0.0])
-    sigma0 = np.array([
-        [1e-3, 0.0, 0.0],
-        [0.0, 1e-3, .0],
-        [0.0, 0.0, 1e-3]
-    ])
-    tl = tf.TransformListener()
-    kf = KalmanFilter(s0=current_state, sigma0=sigma0)
+	sigma0 = np.array([
+		[1e-3, 0.0, 0.0],
+		[0.0, 1e-3, .0],
+		[0.0, 0.0, 1e-3]
+	])
+	tl = tf.TransformListener()
+	kf = KalmanFilter(current_state)
+	fc = FrameCollector()
+	april_sub = rospy.Subscriber("/apriltag_detection_array", AprilTagDetectionArray, fc.collect, queue_size=1)
 
 	for wp in waypoint:
 		print("move to way point", wp)
 		pid.setTarget(wp)
 
-        # calculate the current twist
+		# calculate the current twist
 		update_value = pid.update(current_state)
-        twist_msg = genTwistMsg(coord(update_value, current_state))
-        pub_twist.publish(twist_msg)
-        tl.clear()
+		print("Update value: ", update_value)
+		twist_msg = genTwistMsg(coord(update_value, current_state))
+		pub_twist.publish(twist_msg)
+		print("Twist msg: ", twist_msg)
 		time.sleep(0.05)
 
-        # conduct estimation of state via KalmanFilter
-        s_pred, sigma_pred = kf.predict(update_value)
-        kf.update(s_pred, sigma_pred)
-        current_state = kf.get_state()[:3, 0] # x, y, theta
-
-        # update the current state
-		# current_state += update_value
+		# conduct estimation of state via KalmanFilter
+		kf.predict(update_value)
+		kf.update(fc.query())
+		current_state = kf.get_state()[:3, 0] # x, y, theta
+		print("State after move: ", current_state)
 		while(np.linalg.norm(pid.getError(current_state, wp)) > 0.05):
-            # calculate the current twist
+			# calculate the current twist
 			update_value = pid.update(current_state)
-            # publish the twist
-			pub_twist.publish(genTwistMsg(coord(update_value, current_state)))
+			print("Update value: ", update_value)
+			# publish the twist
+			twist_msg = genTwistMsg(coord(update_value, current_state))
+			print(twist_msg)
+			pub_twist.publish(twist_msg)
 			time.sleep(0.05)
 
-            # update the current state
-            s_pred, sigma_pred = kf.predict(update_value)
-            kf.update(s_pred, sigma_pred)
-            current_state = kf.get_state()[:3, 0] # x, y, theta
+			# update the current state
+			kf.predict(update_value)
+			kf.update(fc.query())
+			current_state = kf.get_state()[:3, 0] # x, y, theta
 
-    # stop the car and exit
+	# stop the car and exit
 	pub_twist.publish(genTwistMsg(np.array([0.0,0.0,0.0])))
