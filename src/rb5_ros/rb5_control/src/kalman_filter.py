@@ -16,9 +16,8 @@ class KalmanFilter:
 		assert self.s.shape[0] == 3 and self.s.shape[1] == 1
 		self.sigma = 1e-5 * np.eye(3)
 		
-		self.R = 0 * np.eye(3) # measurement uncertainity, calibrate from pose samples
-		self.Q = 0 * np.eye(3) # system uncertainity
-		self.init_tag_uncertainty = 1e-5 * np.eye(3) # uncertainty of tag pose when expanding state
+		self.R = 1e-5 * np.eye(3) # measurement uncertainity, calibrate from pose samples
+		self.Q = 1e-5 * np.eye(3) # system uncertainity
 		
 		self.landmarks_seen = []
 		self.landmark2idx = {}
@@ -105,15 +104,14 @@ class KalmanFilter:
 			m_P_tag = np.array([trans[0], trans[1], m_theta_t]).reshape(-1, 1)
 			self.s = np.vstack([self.s, m_P_tag])
 			self.sigma = block_diag(self.sigma, self.init_tag_uncertainty)
+			self.Q = block_diag(self.Q, np.zeros((3, 3))) # movement of robot does not affect landmark uncertainty
 
 	def predict(self, update_value):
 		update_value = update_value.reshape(-1,1)
 		assert update_value.shape[0] == 3 and update_value.shape[1] == 1
 		self.s[:3] = self.s[:3] + update_value # F & G are identity matrix
-		Q = [self.Q] * int(self.s.shape[0] / 3)
-		Q = block_diag(*Q)
 		
-		self.sigma = self.sigma + Q # F is identity matrix
+		self.sigma = self.sigma + self.Q # F is identity matrix
 		
 
 	def update(self, ids_found):
