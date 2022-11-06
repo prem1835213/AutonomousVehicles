@@ -14,11 +14,12 @@ class KalmanFilter:
 	def __init__(self, init_state):
 		self.s = init_state.reshape(-1, 1)
 		assert self.s.shape[0] == 3 and self.s.shape[1] == 1
-		self.sigma = 1e-5 * np.eye(3)
+		self.sigma = 1e-3 * np.eye(3)
 		
-		self.R = 1e-5 * np.eye(3) # measurement uncertainity, calibrate from pose samples
-		self.Q = 1e-5 * np.eye(3) # system uncertainity
-		
+		self.R = 1e-3 * np.eye(3) # measurement uncertainity, calibrate from pose samples
+		self.Q = 0 * np.eye(3) # system uncertainity
+		self.init_tag_uncertainty = 0 * np.eye(3)
+
 		self.landmarks_seen = []
 		self.landmark2idx = {}
 		
@@ -26,6 +27,7 @@ class KalmanFilter:
 		self.tb = tf.TransformBroadcaster()
 
 	def _update_state(self, found_ids):
+		print("Updating off known in-view landmarks")
 		# create H
 		H_right = []
 		for i in range(len(self.landmarks_seen)):
@@ -77,14 +79,29 @@ class KalmanFilter:
 		assert S.shape[0] == 3*len(found_ids) and S.shape[1] == 3*len(found_ids)
 		
 		# create K
+		print("CREATING K MATRIX: ")
+		print("Sigma: ")
+		print(self.sigma)
+		print("S: ")
+		print(S)
+		print("S Inverse: ")
+		print(1e-10 + np.linalg.inv(S))
 		K = np.matmul(self.sigma, np.matmul(H.T, 1e-10 + np.linalg.inv(S))) # d x 3k
 		assert K.shape[0] == self.s.shape[0] and K.shape[1] == 3*len(found_ids)
 		
 		# update
 		error = z - np.dot(H, self.s)
 		error[::-3][::-1] = (error[::-3][::-1] + np.pi) % (2*np.pi) - np.pi # put angles back in -pi to pi
+		print("State before Update: ", self.s)
 		self.s = self.s + np.matmul(K, error)
+		print("State AFTER update: ", self.s)
+		print("K Matrix: ")
+		print(K)
+		print("Sigma before Update: ")
+		print(self.sigma)
 		self.sigma = np.matmul(np.eye(self.s.shape[0]) - np.matmul(K, H), self.sigma)
+		print("Sigma AFTER Update: ")
+		print(self.sigma)
 
 	def _expand_state(self, unknown_ids):
 		print("Expanding State for ids: ", unknown_ids)
@@ -107,12 +124,17 @@ class KalmanFilter:
 			self.Q = block_diag(self.Q, np.zeros((3, 3))) # movement of robot does not affect landmark uncertainty
 
 	def predict(self, update_value):
+		print("PREDICT STEP")
+
 		update_value = update_value.reshape(-1,1)
 		assert update_value.shape[0] == 3 and update_value.shape[1] == 1
 		self.s[:3] = self.s[:3] + update_value # F & G are identity matrix
-		
+		print("Sigma before prediction: ")
+		print(self.sigma)
 		self.sigma = self.sigma + self.Q # F is identity matrix
-		
+		print("Sigma AFTER prediction: ")
+		print(self.sigma)
+
 
 	def update(self, ids_found):
 		known_ids = list(set(self.landmarks_seen).intersection(set(ids_found)))

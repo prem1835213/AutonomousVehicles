@@ -152,11 +152,6 @@ if __name__ == "__main__":
 
 	# init current state
 	current_state = np.array([0.0,0.0,0.0])
-	sigma0 = np.array([
-		[1e-3, 0.0, 0.0],
-		[0.0, 1e-3, .0],
-		[0.0, 0.0, 1e-3]
-	])
 	tl = tf.TransformListener()
 	kf = KalmanFilter(current_state)
 	fc = FrameCollector()
@@ -168,31 +163,32 @@ if __name__ == "__main__":
 
 		# calculate the current twist
 		update_value = pid.update(current_state)
-		print("Update value: ", update_value)
 		twist_msg = genTwistMsg(coord(update_value, current_state))
 		pub_twist.publish(twist_msg)
-		print("Twist msg: ", twist_msg)
-		time.sleep(0.05)
+		time.sleep(pid.timestep)
 
 		# conduct estimation of state via KalmanFilter
 		kf.predict(update_value)
 		kf.update(fc.query())
 		current_state = kf.get_state()[:3, 0] # x, y, theta
-		print("State after move: ", current_state)
+		
+		i = 0
 		while(np.linalg.norm(pid.getError(current_state, wp)) > 0.05):
+			if i % 100 == 0:
+				print(current_state)
+			i += 1
+
 			# calculate the current twist
 			update_value = pid.update(current_state)
-			print("Update value: ", update_value)
-			# publish the twist
 			twist_msg = genTwistMsg(coord(update_value, current_state))
-			print(twist_msg)
 			pub_twist.publish(twist_msg)
-			time.sleep(0.05)
+			time.sleep(pid.timestep)
 
 			# update the current state
 			kf.predict(update_value)
 			kf.update(fc.query())
 			current_state = kf.get_state()[:3, 0] # x, y, theta
 
+	print(kf.get_state())
 	# stop the car and exit
 	pub_twist.publish(genTwistMsg(np.array([0.0,0.0,0.0])))
