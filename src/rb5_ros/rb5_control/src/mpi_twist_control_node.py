@@ -15,7 +15,6 @@ class MegaPiControllerNode:
         self.ly = 0.07 # half of the distance between left wheel and right wheel
         self.calibration = 150.0
 
-        self.minimum_value = 50.0
     def twist_callback(self, twist_cmd):
         desired_twist = self.calibration * np.array([[twist_cmd.linear.x], [twist_cmd.linear.y], [twist_cmd.angular.z]])
         # calculate the jacobian matrix
@@ -26,7 +25,6 @@ class MegaPiControllerNode:
         # calculate the desired wheel velocity
         result = np.dot(jacobian_matrix, desired_twist)
 
-        result[result < self.minimum_value] = self.minimum_value
         # send command to each wheel
         self.mpi_ctrl.setFourMotors(-1 * result[0][0], result[1][0], -1 * result[2][0], result[3][0])
 
