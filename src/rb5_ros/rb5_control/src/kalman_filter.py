@@ -16,7 +16,13 @@ class KalmanFilter:
 		assert self.s.shape[0] == 3 and self.s.shape[1] == 1
 		self.sigma = 1e-3 * np.eye(3)
 		
-		self.R = 1e-3 * np.eye(3) # measurement uncertainity, calibrate from pose samples
+		# self.R = 1e-3 * np.eye(3) # measurement uncertainity, calibrate from pose samples
+		# R measured based upon avg of 3 stationary potions' cov matrices of poses
+		self.R = np.array([
+			[4.139e-08, 7.393e-09, -2.914e-07],
+			[7.393e-09, 2.565e-09, -6.942e-08],
+			[-2.914e-07, -6.942e-08, 1.175e-05]
+		])
 		self.Q = 0 * np.eye(3) # system uncertainity
 		self.init_tag_uncertainty = 0 * np.eye(3)
 
