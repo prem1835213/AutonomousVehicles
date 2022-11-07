@@ -18,12 +18,12 @@ class KalmanFilter:
 		
 		# self.R = 1e-3 * np.eye(3) # measurement uncertainity, calibrate from pose samples
 		# R measured based upon avg of 3 stationary potions' cov matrices of poses
-		self.R = np.array([
-			[4.139e-08, 7.393e-09, -2.914e-07],
-			[7.393e-09, 2.565e-09, -6.942e-08],
-			[-2.914e-07, -6.942e-08, 1.175e-05]
+		self.R = 1e-3 * np.array([
+			[1.0, 0.0, 0.0],
+			[0.0, 1.0, 0.0],
+			[0.0, 0.0, 1.0]
 		])
-		self.Q = 0 * np.eye(3) # system uncertainity
+		self.Q = 1e-3 * np.eye(3) # system uncertainity
 		self.init_tag_uncertainty = 0 * np.eye(3)
 
 		self.landmarks_seen = []
@@ -33,8 +33,8 @@ class KalmanFilter:
 		self.tb = tf.TransformBroadcaster()
 
 	def _update_state(self, found_ids):
-		print("Updating off known in-view landmarks")
 		# create H
+		print("Total Ids Found: ", len(found_ids))
 		H_right = []
 		for i in range(len(self.landmarks_seen)):
 			if self.landmarks_seen[i] in found_ids:
@@ -42,10 +42,13 @@ class KalmanFilter:
 				rowmat[:, i*3:i*3+3] = np.eye(3)
 				H_right.append(rowmat)
 		H_right = np.vstack(H_right)
+		print("H_right shape: ", H_right.shape)
 		
 		H_left = [-1 * np.eye(3)] * len(found_ids)
 		H_left = np.vstack(H_left) # 3k x 3
+		print("H_left shape: ", H_left.shape)
 		H = np.hstack([H_left, H_right])
+		print("H shape: ", H.shape)
 		assert H.shape[0] == 3*len(found_ids) and H.shape[1] == self.s.shape[0]
 		
 		# rotate H to robot frame
@@ -85,32 +88,16 @@ class KalmanFilter:
 		assert S.shape[0] == 3*len(found_ids) and S.shape[1] == 3*len(found_ids)
 		
 		# create K
-		print("CREATING K MATRIX: ")
-		print("Sigma: ")
-		print(self.sigma)
-		print("S: ")
-		print(S)
-		print("S Inverse: ")
-		print(1e-10 + np.linalg.inv(S))
 		K = np.matmul(self.sigma, np.matmul(H.T, 1e-10 + np.linalg.inv(S))) # d x 3k
 		assert K.shape[0] == self.s.shape[0] and K.shape[1] == 3*len(found_ids)
 		
 		# update
 		error = z - np.dot(H, self.s)
 		error[::-3][::-1] = (error[::-3][::-1] + np.pi) % (2*np.pi) - np.pi # put angles back in -pi to pi
-		print("State before Update: ", self.s)
 		self.s = self.s + np.matmul(K, error)
-		print("State AFTER update: ", self.s)
-		print("K Matrix: ")
-		print(K)
-		print("Sigma before Update: ")
-		print(self.sigma)
 		self.sigma = np.matmul(np.eye(self.s.shape[0]) - np.matmul(K, H), self.sigma)
-		print("Sigma AFTER Update: ")
-		print(self.sigma)
 
 	def _expand_state(self, unknown_ids):
-		print("Expanding State for ids: ", unknown_ids)
 		for id in unknown_ids:
 			marker_name = "marker_{}".format(id)
 			self.landmarks_seen.append(id)
@@ -130,16 +117,11 @@ class KalmanFilter:
 			self.Q = block_diag(self.Q, np.zeros((3, 3))) # movement of robot does not affect landmark uncertainty
 
 	def predict(self, update_value):
-		print("PREDICT STEP")
 
 		update_value = update_value.reshape(-1,1)
 		assert update_value.shape[0] == 3 and update_value.shape[1] == 1
 		self.s[:3] = self.s[:3] + update_value # F & G are identity matrix
-		print("Sigma before prediction: ")
-		print(self.sigma)
 		self.sigma = self.sigma + self.Q # F is identity matrix
-		print("Sigma AFTER prediction: ")
-		print(self.sigma)
 
 
 	def update(self, ids_found):

@@ -133,18 +133,19 @@ if __name__ == "__main__":
 
 	# drive in square -- only consider errors for specific directions
 	# start at [6, 2, pi/2] drive in square CCW
-	# waypoint = [
-	#     [0.0, 0.0, 0.0],
-	#     [4.0, 0.0, 0.0],
-	#     [4.0, 0.0, np.pi/2],
-	#     [4.0, 4.0, np.pi/2],
-	#     [4.0, 4.0, np.pi],
-	#     [0.0, 4.0, np.pi],
-	#     [0.0, 4.0, -np.pi/2],
-	#     [0.0, 0.0, -np.pi/2],
-	#     [0.0, 0.0, 0.0]
-	# ]
-	waypoint = [[0.0, 0.0, 0.0], [0.75, 0.0, 0.0]]
+	waypoint = [
+	    [0.0, 0.0, 0.0],
+	    [1.0, 0.0, 0.0],
+	    [1.0, 0.0, np.pi/2],
+	    [1.0, 1.0, np.pi/2],
+	    [1.0, 1.0, np.pi],
+	    [0.0, 1.0, np.pi],
+	    [0.0, 1.0, -np.pi/2],
+	    [0.0, 0.0, -np.pi/2],
+	    [0.0, 0.0, 0.0]
+	]
+	waypoint = waypoint[:3]
+	# waypoint = [[0.0, 0.0, 0.0], [0.75, 0.0, 0.0], [0.0, 0.0, 0.0]]
 	# zeroing-out error terms might not be a good idea because it will prevent proper correction
 
 	# init pid controller
@@ -173,8 +174,8 @@ if __name__ == "__main__":
 		current_state = kf.get_state()[:3, 0] # x, y, theta
 		
 		i = 0
-		while(np.linalg.norm(pid.getError(current_state, wp)) > 0.05):
-			if i % 100 == 0:
+		while(np.linalg.norm(pid.getError(current_state, wp)) > 0.1) and i < 100:
+			if i % 25 == 0:
 				print(current_state)
 			i += 1
 
@@ -190,5 +191,6 @@ if __name__ == "__main__":
 			current_state = kf.get_state()[:3, 0] # x, y, theta
 
 	print(kf.get_state())
+	print("Landmarks seen: ", kf.landmarks_seen)
 	# stop the car and exit
 	pub_twist.publish(genTwistMsg(np.array([0.0,0.0,0.0])))
