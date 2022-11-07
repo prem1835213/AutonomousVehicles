@@ -34,7 +34,6 @@ class KalmanFilter:
 
 	def _update_state(self, found_ids):
 		# create H
-		print("Total Ids Found: ", len(found_ids))
 		H_right = []
 		for i in range(len(self.landmarks_seen)):
 			if self.landmarks_seen[i] in found_ids:
@@ -42,14 +41,13 @@ class KalmanFilter:
 				rowmat[:, i*3:i*3+3] = np.eye(3)
 				H_right.append(rowmat)
 		H_right = np.vstack(H_right)
-		print("H_right shape: ", H_right.shape)
 		
-		H_left = [-1 * np.eye(3)] * len(found_ids)
+		found_already_seen = list(set(found_ids).intersection(set(self.landmarks_seen)))
+
+		H_left = [-1 * np.eye(3)] * len(found_already_seen)
 		H_left = np.vstack(H_left) # 3k x 3
-		print("H_left shape: ", H_left.shape)
 		H = np.hstack([H_left, H_right])
-		print("H shape: ", H.shape)
-		assert H.shape[0] == 3*len(found_ids) and H.shape[1] == self.s.shape[0]
+		assert H.shape[0] == 3*len(found_already_seen) and H.shape[1] == self.s.shape[0]
 		
 		# rotate H to robot frame
 		theta_r = self.s[2][0]
@@ -58,7 +56,7 @@ class KalmanFilter:
 			[np.sin(theta_r), np.cos(theta_r), 0.0],
 			[0.0, 0.0, 1.0]
 		])
-		r_R_w = [w_R_r.T] * len(found_ids)
+		r_R_w = [w_R_r.T] * len(found_already_seen)
 		r_R_w = block_diag(*r_R_w)
 		
 		H = np.matmul(r_R_w, H)
@@ -79,17 +77,17 @@ class KalmanFilter:
 					print("TF LOOKUP EXCEPTION tag in robot")
 					print(e)
 		z = np.array(z).reshape(-1, 1) # 3k x 1
-		assert z.shape[0] == 3*len(found_ids)
+		assert z.shape[0] == 3*len(found_already_seen)
 		
 		# create S
-		R = [self.R] * len(found_ids)
+		R = [self.R] * len(found_already_seen)
 		R = block_diag(*R)
 		S = np.matmul(H, np.matmul(self.sigma, H.T)) + R # 3k x 3k
-		assert S.shape[0] == 3*len(found_ids) and S.shape[1] == 3*len(found_ids)
+		assert S.shape[0] == 3*len(found_already_seen) and S.shape[1] == 3*len(found_already_seen)
 		
 		# create K
 		K = np.matmul(self.sigma, np.matmul(H.T, 1e-10 + np.linalg.inv(S))) # d x 3k
-		assert K.shape[0] == self.s.shape[0] and K.shape[1] == 3*len(found_ids)
+		assert K.shape[0] == self.s.shape[0] and K.shape[1] == 3*len(found_already_seen)
 		
 		# update
 		error = z - np.dot(H, self.s)

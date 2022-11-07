@@ -144,7 +144,7 @@ if __name__ == "__main__":
 	    [0.0, 0.0, -np.pi/2],
 	    [0.0, 0.0, 0.0]
 	]
-	waypoint = waypoint[:3]
+	waypoint = waypoint[:2]
 	# waypoint = [[0.0, 0.0, 0.0], [0.75, 0.0, 0.0], [0.0, 0.0, 0.0]]
 	# zeroing-out error terms might not be a good idea because it will prevent proper correction
 
@@ -175,10 +175,6 @@ if __name__ == "__main__":
 		
 		i = 0
 		while(np.linalg.norm(pid.getError(current_state, wp)) > 0.1) and i < 100:
-			if i % 25 == 0:
-				print(current_state)
-			i += 1
-
 			# calculate the current twist
 			update_value = pid.update(current_state)
 			twist_msg = genTwistMsg(coord(update_value, current_state))
