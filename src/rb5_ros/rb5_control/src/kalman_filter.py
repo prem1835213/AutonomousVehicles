@@ -21,10 +21,11 @@ class KalmanFilter:
 		self.R = 1e-3 * np.array([
 			[1.0, 0.0, 0.0],
 			[0.0, 1.0, 0.0],
-			[0.0, 0.0, 1.0]
+			[0.0, 1.0, 10.0]
 		])
+
 		self.Q = 1e-3 * np.eye(3) # system uncertainity
-		self.init_tag_uncertainty = 0 * np.eye(3)
+		self.init_tag_uncertainty = 1e-3 * np.eye(3)
 
 		self.landmarks_seen = []
 		self.landmark2idx = {}

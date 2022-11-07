@@ -144,7 +144,9 @@ if __name__ == "__main__":
 	    [0.0, 0.0, -np.pi/2],
 	    [0.0, 0.0, 0.0]
 	]
-	waypoint = [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 0.0, np.pi/2]]
+	# waypoint = waypoint[:4]
+	# waypoint = [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 0.0, np.pi/2]]
+	# waypoint = [[0.0, 0.0, 0.0], [0.0, 0.0, np.pi]]
 	# zeroing-out error terms might not be a good idea because it will prevent proper correction
 
 	# init pid controller
@@ -157,36 +159,43 @@ if __name__ == "__main__":
 	fc = FrameCollector()
 	april_sub = rospy.Subscriber("/apriltag_detection_array", AprilTagDetectionArray, fc.collect, queue_size=1)
 
-	for wp in waypoint:
-		print("move to way point", wp)
-		pid.setTarget(wp)
+	for k in range(3):
+		for wp in waypoint:
+			print("move to way point", wp)
+			pid.setTarget(wp)
 
-		# calculate the current twist
-		update_value = pid.update(current_state)
-		twist_msg = genTwistMsg(coord(update_value, current_state))
-		pub_twist.publish(twist_msg)
-		time.sleep(pid.timestep)
-
-		# conduct estimation of state via KalmanFilter
-		kf.predict(update_value)
-		kf.update(fc.query())
-		current_state = kf.get_state()[:3, 0] # x, y, theta
-		
-		i = 0
-		while(np.linalg.norm(pid.getError(current_state, wp)) > 0.1) and i < 50:
-			i += 1
 			# calculate the current twist
 			update_value = pid.update(current_state)
 			twist_msg = genTwistMsg(coord(update_value, current_state))
 			pub_twist.publish(twist_msg)
 			time.sleep(pid.timestep)
 
-			# update the current state
+			# conduct estimation of state via KalmanFilter
 			kf.predict(update_value)
 			kf.update(fc.query())
 			current_state = kf.get_state()[:3, 0] # x, y, theta
+			
+			i = 0
+			while(np.linalg.norm(pid.getError(current_state, wp)) > 0.1) and i < 50:
+				i += 1
+				# calculate the current twist
+				update_value = pid.update(current_state)
+				twist_msg = genTwistMsg(coord(update_value, current_state))
+				pub_twist.publish(twist_msg)
+				time.sleep(pid.timestep)
 
-	print(kf.get_state())
-	print("Landmarks seen: ", kf.landmarks_seen)
-	# stop the car and exit
-	pub_twist.publish(genTwistMsg(np.array([0.0,0.0,0.0])))
+				# update the current state
+				kf.predict(update_value)
+				kf.update(fc.query())
+				current_state = kf.get_state()[:3, 0] # x, y, theta
+				print("Theta: ", current_state[2])
+
+		print("Landmarks seen: ", kf.landmarks_seen)
+		print(kf.get_state())
+		
+		with open("states_square_loop{}.npy".format(k), "wb") as f:
+			np.save(f, kf.get_state())
+		with open("landmarks_seen_square_loop{}.npy".format(k), "wb") as f:
+			np.save(f, np.array(kf.landmarks_seen))
+		# stop the car and exit
+		pub_twist.publish(genTwistMsg(np.array([0.0,0.0,0.0])))
