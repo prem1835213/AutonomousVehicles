@@ -25,7 +25,8 @@ class KalmanFilter:
 		])
 
 		self.Q = 1e-3 * np.eye(3) # system uncertainity
-		self.init_tag_uncertainty = 1e-3 * np.eye(3)
+		self.init_tag_uncertainty = 0.5 * self.Q.copy() + 0.5 * self.R.copy()
+		# self.init_tag_uncertainty = 1e-3 * np.eye(3)
 
 		self.landmarks_seen = []
 		self.landmark2idx = {}
