@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import argparse
 import tf
 from tf import transformations as t
 import sys
@@ -8,6 +9,7 @@ from april_detection.msg import AprilTagDetectionArray
 import numpy as np
 from planning import fastest_route, safest_route
 from planning import ROBOT_WIDTH, ROBOT_HEIGHT
+import math
 
 """
 The class of the pid controller.
@@ -103,8 +105,8 @@ class Robot:
 	def estimate_pose(self):
 		self.tl.waitForTransform("camera", "world", rospy.Time(0), rospy.Duration(1))
 		(trans, rot) = self.tl.lookupTransform("world", "camera", rospy.Time(0))
-        rot = t.quaternion_matrix(rot)
-        theta = math.atan2(rot[1][2], rot[0, 2])
+		rot = t.quaternion_matrix(rot)
+		theta = math.atan2(rot[1][2], rot[0, 2])
 		pose = np.array([trans[0], trans[1], theta])
 		return pose
 
@@ -115,8 +117,8 @@ class Robot:
 			self.changed_at = time.time()
 
 
-def convert_cells_to_waypoints(cells):
-    """cells are in x, y notation on world map, need to convert to waypoints"""
+def convert_cells_to_waypoints(coords):
+    """coords are in x, y notation on world map, need to convert to waypoints"""
     waypoints = []
     for elem in coords:
         # x is correct, but y is positive in opposite direction
@@ -163,28 +165,47 @@ def theta_to_next(wps):
         thetas.append(theta)
     return np.array(thetas)
 
+parser = argparse.ArgumentParser(description='Fast or Safe route')
+parser.add_argument('-f', '--fast', action='store_true')
+parser.add_argument('-s', '--safe', action='store_true')
+
 if __name__ == "__main__":
 
 	import time
-	rospy.init_node("hw4")
-	robot = Robot(init_state=np.array([0.0, 0.0, 0.0]))
-	rospy.Subscriber("/apriltag_detection_array", AprilTagDetectionArray, robot.update_state, queue_size=1)
-	pub_twist = rospy.Publisher("/twist", Twist, queue_size=1)
+	args = parser.parse_args()
+	if args.fast and args.safe:
+		raise Exception("Cannot be both fast and safe")
+	elif not args.fast and not args.safe:
+		raise Exception("Must pick a mode of fast or safe")
+	
+	# rospy.init_node("hw4")
+	# robot = Robot(init_state=np.array([0.0, 0.0, 0.0]))
+	# rospy.Subscriber("/apriltag_detection_array", AprilTagDetectionArray, robot.update_state, queue_size=1)
+	# pub_twist = rospy.Publisher("/twist", Twist, queue_size=1)
 
-    world = np.zeros((12, 12))
-    # next two lines are world INDEX locations of which cells the obstacles are placed at
-    occupied_cells = [(5 ,5), (5, 6), (6, 5), (6, 6)]
-    obstacle_centers = [(5.5, 5.5)]
+	world = np.zeros((12, 12))
+	# next two lines are world INDEX locations of which cells the obstacles are placed at
+	occupied_cells = [(5 ,5), (5, 6), (6, 5), (6, 6)]
+	obstacle_centers = [(5.5, 5.5)]
 
-    move_cells = fastest_route(start=(11, 11), goal=(0, 0), world=world, occupied=occupied_cells)
-    move_cells = safest_route(start=(11, 11), goal=(0, 0), obs_centers=obstacle_centers)
-    waypoint = convert_cells_to_waypoints(move_cells)
-    waypoint = compress_waypoints(waypoint)
-    waypoint = np.hstack([waypoint, np.zeros(waypoint.shape[0], 1)]) # add theta dimension
-    waypoint[:-1, 2] = theta_to_next(waypoint[:]) # modify theta dimension to point to next waypoint
-    waypoint[-1, 2] = np.pi/2 # end pointing up because we start pointing up
+	if args.fast:
+		move_cells = fastest_route(start=(11, 11), goal=(0, 0), world=world, occupied=occupied_cells)
+	else:
+		move_cells = safest_route(start=(11, 11), goal=(0, 0), world=world, obs_centers=obstacle_centers)
+	waypoint = convert_cells_to_waypoints(move_cells)
+	waypoint = compress_waypoints(waypoint)
+	waypoint = np.hstack([waypoint, np.zeros((waypoint.shape[0], 1))]) # add theta dimension
+	waypoint[:-1, 2] = theta_to_next(waypoint[:]) # modify theta dimension to point to next waypoint
+	waypoint[-1, 2] = waypoint[-2, 2] # end pointing in same direction as n-1 waypoint to prevent extra turn
 
-    pid = PIDcontroller(0.0175, 0.001, 0.00025)
+	if args.fast:
+		print("Fastest Route Waypoints")
+	else:
+		print("Safest Route Waypoints")
+	print(waypoint)
+	print(args.fast, args.safe)
+
+	pid = PIDcontroller(0.0175, 0.001, 0.00025)
 
 	current_state = np.array([2.875, 0.125, np.pi/2]) # start at center of bottom right cell facing up
 

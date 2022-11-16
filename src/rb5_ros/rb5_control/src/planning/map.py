@@ -1,3 +1,5 @@
+from .node import Node
+
 class Map:
     def __init__(self, world_map):
         self.map = world_map # 2D numpy boolean array, 1 means occupied
