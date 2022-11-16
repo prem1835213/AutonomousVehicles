@@ -9,6 +9,32 @@ def create_state(trans, q):
     state = np.array([trans[0], trans[1], theta])
     return state
 
+class WorldTag:
+
+	def __init__(self, tag_type, translation):
+		"""
+		tag_type: type 1 is on right wall, type2 is on top wall, type 3 is on left wall, type 4 is on bototm wall assuming that world frame +x points to right and +y points to top walls
+
+		translation: list representing position of tag in world frame [x, y, z]
+		"""
+		if tag_type == 1:
+			self.rotation = TYPE1_ROTATION
+		elif tag_type == 2:
+			self.rotation = TYPE2_ROTATION
+		elif tag_type == 3:
+			self.rotation = TYPE3_ROTATION
+		elif tag_type == 4:
+			self.rotation = TYPE4_ROTATION
+		else:
+			raise Exception("Invalid tag type provided")
+
+		self.translation = t.translation_matrix(np.array(translation))
+		# create 4 x 4 Rotation Matrix
+		self.rotation = np.hstack([self.rotation, np.array([0, 0, 0]).reshape(3, 1)])
+		self.rotation = np.vstack([self.rotation, np.array([0, 0, 0, 1]).reshape(1, 4)])
+
+		self.w_T_tag = t.concatenate_matrices(self.translation, self.rotation)
+
 class PoseEstimator:
 	def __init__(self):
 		self.tl = tf.TransformListener() # listens to /tf topic
