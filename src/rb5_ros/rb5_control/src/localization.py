@@ -9,6 +9,32 @@ def create_state(trans, q):
     state = np.array([trans[0], trans[1], theta])
     return state
 
+TYPE1_ROTATION = np.array([
+	[0, 0, 1],
+	[-1, 0, 0],
+	[0, -1, 0]])
+
+TYPE2_ROTATION = np.array([
+	[1, 0, 0],
+	[0, 0, 1],
+	[0, -1, 0]])
+
+TYPE3_ROTATION = np.array([
+	[0, 0, -1],
+	[1, 0, 0],
+	[0, -1, 0]])
+
+TYPE4_ROTATION = np.array([
+	[-1, 0, 0],
+	[0, 0, -1],
+	[0, -1, 0]])
+
+CAM_ROTATION = np.array([
+	[0, 0, 1],
+	[-1, 0, 0],
+	[0, -1, 0]
+])
+
 class WorldTag:
 
 	def __init__(self, tag_type, translation):
