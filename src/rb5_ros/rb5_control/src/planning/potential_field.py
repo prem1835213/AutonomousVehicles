@@ -102,13 +102,13 @@ def gradient_descent(start, goal, field):
     return path, stuck
 
 def safest_route(start, goal, world, obs_centers):
-    U = construct_potential_field(goal, world, obs_centers)
-    path, stuck = gradient_descent(start, goal, U)
+	U = construct_potential_field(goal, world, obs_centers)
+	path, stuck = gradient_descent(start, goal, U)
 
-    if stuck:
-        raise Exception("Local Minima encountered, no path found")
-    else:
-        # convert matrix i,j notation to world x,y notation (ie. swap i and j)
-        path = np.array(path)
-        coordinates = np.hstack([path[:, 1].reshape(-1, 1), path[:, 0].reshape(-1, 1)])
-    return coordinates # sequence of cells in world, not waypoints
+	if stuck:
+		raise Exception("Local Minima encountered, no path found")
+	else:
+		# convert matrix i,j notation to world x,y notation (ie. swap i and j)
+		path = np.array(path)
+		coordinates = np.hstack([path[:, 1].reshape(-1, 1), path[:, 0].reshape(-1, 1)])
+		return coordinates # sequence of cells in world, not waypoints

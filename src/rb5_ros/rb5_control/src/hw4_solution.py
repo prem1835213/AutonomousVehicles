@@ -191,7 +191,7 @@ if __name__ == "__main__":
 	if args.fast:
 		move_cells = fastest_route(start=(11, 11), goal=(0, 0), world=world, occupied=occupied_cells)
 	else:
-		move_cells = safest_route(start=(11, 11), goal=(0, 0), world=world, obs_centers=obstacle_centers)
+		move_cells = safest_route(start=[11, 11], goal=[0, 0], world=world, obs_centers=obstacle_centers)
 	waypoint = convert_cells_to_waypoints(move_cells)
 	waypoint = compress_waypoints(waypoint)
 	waypoint = np.hstack([waypoint, np.zeros((waypoint.shape[0], 1))]) # add theta dimension
