@@ -22,8 +22,8 @@ class PIDcontroller:
         self.target = None
         self.I = np.array([0.0,0.0,0.0])
         self.lastError = np.array([0.0,0.0,0.0])
-        self.timestep = 0.1
-        self.maximumValue = 0.025
+        self.timestep = 0.05
+        self.maximumValue = 1.5
 
     def setTarget(self, targetx, targety, targetw):
         """
@@ -169,6 +169,25 @@ parser = argparse.ArgumentParser(description='Fast or Safe route')
 parser.add_argument('-f', '--fast', action='store_true')
 parser.add_argument('-s', '--safe', action='store_true')
 
+def state_to_transform(state):
+    x, y, theta = state
+    trans = np.array([x, y, 0.0])
+    camera_aligned = np.array([
+        [0, 0, 1],
+        [-1, 0, 0],
+        [0, -1, 0]
+    ])
+    rotation = np.array([
+        [np.cos(theta), -np.sin(theta), 0],
+        [np.sin(theta), np.cos(theta), 0],
+        [0, 0, 1]
+    ]) # rotation of camera about world's z axis in CCW
+    camera_axes = rotation.dot(camera_aligned)
+    w_R_cam = np.vstack([rotation, np.zeros(3).reshape(1, -1)]) # 4 x 3
+    w_R_cam = np.hstack([w_R_cam, np.array([0, 0, 0, 1]).reshape(-1, 1)]) # 4 x 4
+    q = t.quaternion_from_matrix(w_R_cam)
+    return trans, q
+
 if __name__ == "__main__":
 
 	import time
@@ -177,11 +196,13 @@ if __name__ == "__main__":
 		raise Exception("Cannot be both fast and safe")
 	elif not args.fast and not args.safe:
 		raise Exception("Must pick a mode of fast or safe")
-	
+
 	# rospy.init_node("hw4")
 	# robot = Robot(init_state=np.array([0.0, 0.0, 0.0]))
 	# rospy.Subscriber("/apriltag_detection_array", AprilTagDetectionArray, robot.update_state, queue_size=1)
 	# pub_twist = rospy.Publisher("/twist", Twist, queue_size=1)
+
+    tb = tf.TransformBroadcaster()
 
 	world = np.zeros((12, 12))
 	# next two lines are world INDEX locations of which cells the obstacles are placed at
@@ -217,22 +238,26 @@ if __name__ == "__main__":
 		pub_twist.publish(genTwistMsg(coord(update_value, current_state)))
 		time.sleep(0.05)
 
-		# update the current state
+        est_trans, est_q = state_to_transform(current_state + update_value)
+        tb.sendTransform(est_trans, est_q, rospy.Time(), "estimated_camera", "world")
 		if abs(time.time() - robot.changed_at) < 0.05:
 			current_state = robot.current_state
 		else:
 			current_state += update_value
+            current_state[2] = (current_state[2] + np.pi) % (2 * np.pi) - np.pi
 
 		while(np.linalg.norm(pid.getError(current_state, wp)) > 0.1):
 			update_value = pid.update(current_state)
 			pub_twist.publish(genTwistMsg(coord(update_value, current_state)))
 			time.sleep(0.05)
 
-			# update the current state
+            est_trans, est_q = state_to_transform(current_state + update_value)
+            tb.sendTransform(est_trans, est_q, rospy.Time(), "estimated_camera", "world")
 			if abs(time.time() - robot.changed_at) < 0.05:
 				current_state = robot.current_state
 			else:
 				current_state += update_value
+                current_state[2] = (current_state[2] + np.pi) % (2 * np.pi) - np.pi
 
     # stop the car and exit
 	pub_twist.publish(genTwistMsg(np.array([0.0,0.0,0.0])))
