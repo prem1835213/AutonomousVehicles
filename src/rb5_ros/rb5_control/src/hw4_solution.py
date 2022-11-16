@@ -9,7 +9,9 @@ from april_detection.msg import AprilTagDetectionArray
 import numpy as np
 from planning import fastest_route, safest_route
 from planning import ROBOT_WIDTH, ROBOT_HEIGHT
+from localization import PoseEstimator, create_state
 import math
+import time
 
 """
 The class of the pid controller.
@@ -99,23 +101,26 @@ def coord(twist, current_state):
 class Robot:
 	def __init__(self, init_state):
 		self.tl = tf.TransformListener()
-		self.current_state = init_state
-		self.changed_at = time.time()
+		self.state = init_state
+		self.detected_at = time.time()
+        self.pe = PoseEstimator()
 
-	def estimate_pose(self):
-		self.tl.waitForTransform("camera", "world", rospy.Time(0), rospy.Duration(1))
-		(trans, rot) = self.tl.lookupTransform("world", "camera", rospy.Time(0))
-		rot = t.quaternion_matrix(rot)
-		theta = math.atan2(rot[1][2], rot[0, 2])
-		pose = np.array([trans[0], trans[1], theta])
-		return pose
+    def store_detections(self, apriltag_array):
+        self.detections = apriltag_array.detections
+        if len(self.detections) > 0:
+            self.detected_at = time.time()
 
-	def update_state(self, apriltag_array):
-		detections = apriltag_array.detections
-		if len(detections) > 0:
-			self.current_state = self.estimate_pose()
-			self.changed_at = time.time()
+	def update_state(self, update_value):
+        if time.time() - self.detected_at < 0.05 and len(self.detections) > 0:
+            self.pe.estimate_pose(self.detections)
+            trans, q = self.tl.lookupTransform("world", "camera", rospy.Time())
+            self.state = create_state(trans, q)
+        else:
+            self.state = self.state + update_value
+            self.state[2] = (self.state[2] + np.pi) % (2 * np.pi) - np.pi
 
+    def get_state(self):
+        return self.state
 
 def convert_cells_to_waypoints(coords):
     """coords are in x, y notation on world map, need to convert to waypoints"""
@@ -190,17 +195,18 @@ def state_to_transform(state):
 
 if __name__ == "__main__":
 
-	import time
 	args = parser.parse_args()
 	if args.fast and args.safe:
 		raise Exception("Cannot be both fast and safe")
 	elif not args.fast and not args.safe:
 		raise Exception("Must pick a mode of fast or safe")
 
-	# rospy.init_node("hw4")
-	# robot = Robot(init_state=np.array([0.0, 0.0, 0.0]))
-	# rospy.Subscriber("/apriltag_detection_array", AprilTagDetectionArray, robot.update_state, queue_size=1)
-	# pub_twist = rospy.Publisher("/twist", Twist, queue_size=1)
+	rospy.init_node("hw4")
+    current_state = np.array([0.0, 0.0, 0.0])
+
+	robot = Robot(init_state=current_state)
+	rospy.Subscriber("/apriltag_detection_array", AprilTagDetectionArray, robot.store_detections, queue_size=1)
+	pub_twist = rospy.Publisher("/twist", Twist, queue_size=1)
 
     tb = tf.TransformBroadcaster()
 
@@ -213,51 +219,57 @@ if __name__ == "__main__":
 		move_cells = fastest_route(start=(11, 11), goal=(0, 0), world=world, occupied=occupied_cells)
 	else:
 		move_cells = safest_route(start=[11, 11], goal=[0, 0], world=world, obs_centers=obstacle_centers)
-	waypoint = convert_cells_to_waypoints(move_cells)
+
+    waypoint = convert_cells_to_waypoints(move_cells)
 	waypoint = compress_waypoints(waypoint)
 	waypoint = np.hstack([waypoint, np.zeros((waypoint.shape[0], 1))]) # add theta dimension
 	waypoint[:-1, 2] = theta_to_next(waypoint[:]) # modify theta dimension to point to next waypoint
 	waypoint[-1, 2] = waypoint[-2, 2] # end pointing in same direction as n-1 waypoint to prevent extra turn
 
-	if args.fast:
-		print("Fastest Route Waypoints")
-	else:
-		print("Safest Route Waypoints")
-	print(waypoint)
-	print(args.fast, args.safe)
-
 	pid = PIDcontroller(0.0175, 0.001, 0.00025)
 
-	current_state = np.array([2.875, 0.125, np.pi/2]) # start at center of bottom right cell facing up
+	# current_state = np.array([2.875, 0.125, np.pi/2]) # start at center of bottom right cell facing up
 
-	for wp in waypoint:
-		print("move to way point", wp)
-		pid.setTarget(wp)
+    update_value = np.array([1.0, 0.0, 0.0])
+    print("Sleeping for 3 seconds")
+    time.sleep(3)
 
-		update_value = pid.update(current_state)
-		pub_twist.publish(genTwistMsg(coord(update_value, current_state)))
-		time.sleep(0.05)
+    est_trans, est_q = state_to_transform(current_state + update_value)
+    tb.sendTransform(est_trans, est_q, rospy.Time(), "estimated_camera", "world")
+    robot.update_state(update_value)
+    current_state = robot.get_state()
+    print("State after moving:")
+    print(current_state)
 
-        est_trans, est_q = state_to_transform(current_state + update_value)
-        tb.sendTransform(est_trans, est_q, rospy.Time(), "estimated_camera", "world")
-		if abs(time.time() - robot.changed_at) < 0.05:
-			current_state = robot.current_state
-		else:
-			current_state += update_value
-            current_state[2] = (current_state[2] + np.pi) % (2 * np.pi) - np.pi
 
-		while(np.linalg.norm(pid.getError(current_state, wp)) > 0.1):
-			update_value = pid.update(current_state)
-			pub_twist.publish(genTwistMsg(coord(update_value, current_state)))
-			time.sleep(0.05)
-
-            est_trans, est_q = state_to_transform(current_state + update_value)
-            tb.sendTransform(est_trans, est_q, rospy.Time(), "estimated_camera", "world")
-			if abs(time.time() - robot.changed_at) < 0.05:
-				current_state = robot.current_state
-			else:
-				current_state += update_value
-                current_state[2] = (current_state[2] + np.pi) % (2 * np.pi) - np.pi
-
-    # stop the car and exit
-	pub_twist.publish(genTwistMsg(np.array([0.0,0.0,0.0])))
+	# for wp in waypoint:
+	# 	print("move to way point", wp)
+	# 	pid.setTarget(wp)
+    #
+	# 	update_value = pid.update(current_state)
+	# 	pub_twist.publish(genTwistMsg(coord(update_value, current_state)))
+	# 	time.sleep(0.05)
+    #
+    #     est_trans, est_q = state_to_transform(current_state + update_value)
+    #     tb.sendTransform(est_trans, est_q, rospy.Time(), "estimated_camera", "world")
+	# 	if abs(time.time() - robot.changed_at) < 0.05:
+	# 		current_state = robot.current_state
+	# 	else:
+	# 		current_state += update_value
+    #         current_state[2] = (current_state[2] + np.pi) % (2 * np.pi) - np.pi
+    #
+	# 	while(np.linalg.norm(pid.getError(current_state, wp)) > 0.1):
+	# 		update_value = pid.update(current_state)
+	# 		pub_twist.publish(genTwistMsg(coord(update_value, current_state)))
+	# 		time.sleep(0.05)
+    #
+    #         est_trans, est_q = state_to_transform(current_state + update_value)
+    #         tb.sendTransform(est_trans, est_q, rospy.Time(), "estimated_camera", "world")
+	# 		if abs(time.time() - robot.changed_at) < 0.05:
+	# 			current_state = robot.current_state
+	# 		else:
+	# 			current_state += update_value
+    #             current_state[2] = (current_state[2] + np.pi) % (2 * np.pi) - np.pi
+    #
+    # # stop the car and exit
+	# pub_twist.publish(genTwistMsg(np.array([0.0,0.0,0.0])))
