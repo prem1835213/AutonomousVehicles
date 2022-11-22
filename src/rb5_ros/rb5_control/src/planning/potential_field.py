@@ -23,9 +23,9 @@ def get_neighbors(cell, mapp):
     return valids
 
 def construct_potential_field(goal, world, obs_centers):
-    GOAL_GAIN = 5.5
+    GOAL_GAIN = 5
     OBSTACLE_GAIN = 1000
-    OBSTACLE_INFLUENCE = 5 # 5 cells of influence
+    OBSTACLE_INFLUENCE = 3 # 5 cells of influence
     # create attractive potential field
     U_att = np.zeros(world.shape)
     for i in range(world.shape[0]):

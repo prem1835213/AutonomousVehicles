@@ -72,20 +72,18 @@ class WorldTag:
 class PoseEstimator:
 	def __init__(self):
         # keep duplicate tags on opposite sides of map
-        # self.markers = {
-        #     0: [WorldTag(tag_type=4), WorldTag(tag_type=2)],
-        #     1: [WorldTag(tag_type=4), WorldTag(tag_type=2)],
-        #     2: [WorldTag(tag_type=3), WorldTag(tag_type=1)],
-        #     3: [WorldTag(tag_type=3), WorldTag(tag_type=1)],
-        #     4: [WorldTag(tag_type=3)],
-        #     5: [WorldTag(tag_type=4)],
-        #     7: [WorldTag(tag_type=1)],
-        #     8: [WorldTag(tag_type=2)]
-        # }
 		self.markers = {
-			0: [WorldTag(tag_type=1, translation=[3.0, 0.0, 0.0]), WorldTag(tag_type=1, translation=[3.0, 3.0, 0.0])]
+            0: [WorldTag(tag_type=4, translation=[0.0, -0.15, 0.0]), WorldTag(tag_type=2, translation=[1.18, 1.07, 0.0])],
+            1: [WorldTag(tag_type=1, translation=[2.65, 0.0, 0.0]), WorldTag(tag_type=3, translation=[1.36, 1.28, 0.0])],
+            2: [WorldTag(tag_type=2, translation=[2.5, 2.65, 0.0]), WorldTag(tag_type=4, translation=[1.225, 1.37, 0.0])],
+			3: [WorldTag(tag_type=1, translation=[1.04, 1.22, 0.0])],
+			4: [WorldTag(tag_type=4, translation=[2.65, -0.15, 0.0])],
+            5: [WorldTag(tag_type=2, translation=[0.0, 2.65, 0.0])],
+            7: [WorldTag(tag_type=3, translation=[-0.15, 0.0, 0.0])],
+            8: [WorldTag(tag_type=3, translation=[-0.15, 2.5, 0.0])],
+			9: [WorldTag(tag_type=1, translation=[2.65, 2.6, 0.0])]
         }
-		self.markers_used = [0, 1, 2, 3, 4, 5, 7, 8]
+		self.markers_used = [0, 1, 2, 3, 4, 5, 7, 8, 9]
 
 	def calculate_world_P_cam(self, tag_id, k, tl):
 		now = rospy.Time()
