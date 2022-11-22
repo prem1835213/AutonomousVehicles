@@ -9,7 +9,9 @@ from april_detection.msg import AprilTagDetectionArray
 import numpy as np
 from planning import fastest_route, safest_route
 from planning import ROBOT_WIDTH, ROBOT_HEIGHT
+from localization import PoseEstimator, create_state
 import math
+import time
 
 """
 The class of the pid controller.
@@ -23,7 +25,7 @@ class PIDcontroller:
         self.I = np.array([0.0,0.0,0.0])
         self.lastError = np.array([0.0,0.0,0.0])
         self.timestep = 0.1
-        self.maximumValue = 0.025
+        self.maximumValue = 0.5
 
     def setTarget(self, targetx, targety, targetw):
         """
@@ -99,23 +101,40 @@ def coord(twist, current_state):
 class Robot:
 	def __init__(self, init_state):
 		self.tl = tf.TransformListener()
-		self.current_state = init_state
-		self.changed_at = time.time()
+		self.tb = tf.TransformBroadcaster()
+		self.state = init_state
+		self.detected_at = time.time()
+		self.pe = PoseEstimator()
 
-	def estimate_pose(self):
-		self.tl.waitForTransform("camera", "world", rospy.Time(0), rospy.Duration(1))
-		(trans, rot) = self.tl.lookupTransform("world", "camera", rospy.Time(0))
-		rot = t.quaternion_matrix(rot)
-		theta = math.atan2(rot[1][2], rot[0, 2])
-		pose = np.array([trans[0], trans[1], theta])
-		return pose
+	def store_detections(self, apriltag_array):
+		self.detections = apriltag_array.detections
+		if len(self.detections) > 0:
+			print("Updating detections")
+			self.detected_at = time.time()
 
-	def update_state(self, apriltag_array):
-		detections = apriltag_array.detections
-		if len(detections) > 0:
-			self.current_state = self.estimate_pose()
-			self.changed_at = time.time()
+	def update_state(self, update_value):
+		try:
+			array_msg = rospy.wait_for_message("/apriltag_detection_array", AprilTagDetectionArray, timeout=1.0)
+			detections = array_msg.detections
+			estimated_state = self.state + update_value
+			estimated_state[2] = (estimated_state[2] + np.pi) % (2*np.pi) - np.pi
+			if len(detections) > 0:
+				self.pe.estimate_pose(detections, estimated_state, self.tl, self.tb)
+				now = rospy.Time()
+				self.tl.waitForTransform("world", "camera", now, rospy.Duration(0.1))
+				trans, q = self.tl.lookupTransform("world", "camera", now)
+				self.state = create_state(trans, q)
+			else:
+				print("Detections empty")
+				self.state = estimated_state
+		except rospy.ROSException:
+			print("No Tag detection message received")
+			self.state = self.state + update_value
+			self.state[2] = (self.state[2] + np.pi) % (2*np.pi) - np.pi
+		
 
+	def get_state(self):
+		return self.state
 
 def convert_cells_to_waypoints(coords):
     """coords are in x, y notation on world map, need to convert to waypoints"""
@@ -169,70 +188,100 @@ parser = argparse.ArgumentParser(description='Fast or Safe route')
 parser.add_argument('-f', '--fast', action='store_true')
 parser.add_argument('-s', '--safe', action='store_true')
 
+def state_to_transform(state):
+    x, y, theta = state
+    trans = np.array([x, y, 0.0])
+    camera_aligned = np.array([
+        [0, 0, 1],
+        [-1, 0, 0],
+        [0, -1, 0]
+    ])
+    rotation = np.array([
+        [np.cos(theta), -np.sin(theta), 0],
+        [np.sin(theta), np.cos(theta), 0],
+        [0, 0, 1]
+    ]) # rotation of camera about world's z axis in CCW
+    camera_axes = rotation.dot(camera_aligned)
+    w_R_cam = np.vstack([rotation, np.zeros(3).reshape(1, -1)]) # 4 x 3
+    w_R_cam = np.hstack([w_R_cam, np.array([0, 0, 0, 1]).reshape(-1, 1)]) # 4 x 4
+    q = t.quaternion_from_matrix(w_R_cam)
+    return trans, q
+
 if __name__ == "__main__":
 
-	import time
 	args = parser.parse_args()
 	if args.fast and args.safe:
 		raise Exception("Cannot be both fast and safe")
 	elif not args.fast and not args.safe:
 		raise Exception("Must pick a mode of fast or safe")
-	
-	# rospy.init_node("hw4")
-	# robot = Robot(init_state=np.array([0.0, 0.0, 0.0]))
-	# rospy.Subscriber("/apriltag_detection_array", AprilTagDetectionArray, robot.update_state, queue_size=1)
-	# pub_twist = rospy.Publisher("/twist", Twist, queue_size=1)
 
-	world = np.zeros((12, 12))
+	rospy.init_node("hw4")
+	current_state = np.array([2.5-0.125, 0.125, np.pi/2])
+
+	robot = Robot(init_state=current_state)
+	# rospy.Subscriber("/apriltag_detection_array", AprilTagDetectionArray, robot.store_detections, queue_size=1)
+	pub_twist = rospy.Publisher("/twist", Twist, queue_size=1)
+
+	tb = tf.TransformBroadcaster()
+
+	world = np.zeros((10, 10))
 	# next two lines are world INDEX locations of which cells the obstacles are placed at
-	occupied_cells = [(5 ,5), (5, 6), (6, 5), (6, 6)]
-	obstacle_centers = [(5.5, 5.5)]
+	occupied_cells = [(4 ,4), (4, 5), (5, 4), (5, 5), (3, 3), (3, 4), (3, 5), (3, 6), (4, 3), (4, 6), (5, 3), (5, 6)]
+	obstacle_centers = [(4.5, 4.5)]
 
 	if args.fast:
-		move_cells = fastest_route(start=(11, 11), goal=(0, 0), world=world, occupied=occupied_cells)
+		move_cells = fastest_route(start=(9, 9), goal=(0, 0), world=world, occupied=occupied_cells)
 	else:
-		move_cells = safest_route(start=[11, 11], goal=[0, 0], world=world, obs_centers=obstacle_centers)
+		move_cells = safest_route(start=[9, 9], goal=[0, 0], world=world, obs_centers=obstacle_centers)
+
 	waypoint = convert_cells_to_waypoints(move_cells)
 	waypoint = compress_waypoints(waypoint)
 	waypoint = np.hstack([waypoint, np.zeros((waypoint.shape[0], 1))]) # add theta dimension
 	waypoint[:-1, 2] = theta_to_next(waypoint[:]) # modify theta dimension to point to next waypoint
 	waypoint[-1, 2] = waypoint[-2, 2] # end pointing in same direction as n-1 waypoint to prevent extra turn
 
-	if args.fast:
-		print("Fastest Route Waypoints")
-	else:
-		print("Safest Route Waypoints")
-	print(waypoint)
-	print(args.fast, args.safe)
+	# print(waypoint)
 
+	# waypoint = np.array([[1.5, 1.28, np.pi]])
 	pid = PIDcontroller(0.0175, 0.001, 0.00025)
 
-	current_state = np.array([2.875, 0.125, np.pi/2]) # start at center of bottom right cell facing up
+	current_state = np.array([2.5-0.125, 0.125, np.pi/2]) # start at center of bottom right cell facing up
 
+	poses = [current_state]
 	for wp in waypoint:
 		print("move to way point", wp)
 		pid.setTarget(wp)
-
+		
 		update_value = pid.update(current_state)
 		pub_twist.publish(genTwistMsg(coord(update_value, current_state)))
-		time.sleep(0.05)
-
-		# update the current state
-		if abs(time.time() - robot.changed_at) < 0.05:
-			current_state = robot.current_state
-		else:
-			current_state += update_value
-
-		while(np.linalg.norm(pid.getError(current_state, wp)) > 0.1):
+		time.sleep(0.1)
+	
+		robot.update_state(update_value)
+		current_state = robot.get_state()
+		poses.append(current_state)
+		i = 0
+		while(np.linalg.norm(pid.getError(current_state, wp)) > 0.1) and i < 10:
+			i += 1
 			update_value = pid.update(current_state)
 			pub_twist.publish(genTwistMsg(coord(update_value, current_state)))
-			time.sleep(0.05)
-
-			# update the current state
-			if abs(time.time() - robot.changed_at) < 0.05:
-				current_state = robot.current_state
-			else:
-				current_state += update_value
-
+			time.sleep(0.1)
+	
+			robot.update_state(update_value)
+			current_state = robot.get_state()
+			poses.append(current_state)
+			print(current_state)
     # stop the car and exit
 	pub_twist.publish(genTwistMsg(np.array([0.0,0.0,0.0])))
+	print(current_state)
+	poses.append(current_state)
+
+	if args.fast:
+		with open("hw4_poses_fast.npy", "wb") as f:
+			np.save(f, np.array(poses))
+		with open("hw4_waypoints_fast.npy", "wb") as f:
+			np.save(f, waypoint)
+	else:
+		with open("hw4_poses_safe.npy", "wb") as f:
+			np.save(f, np.array(poses))
+		with open("hw4_waypoints_safe.npy", "wb") as f:
+			np.save(f, waypoint)

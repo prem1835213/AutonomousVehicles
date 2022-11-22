@@ -19,5 +19,4 @@
     <param name="image_compress" value="$(arg image_compress)" />
   </node>
 
-	<node pkg="tf" type="static_transform_publisher" name="camera_transform" args="0 0 0 0.5 -0.5 0.5 -0.5 robot camera 100" />
 </launch>
