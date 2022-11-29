@@ -223,8 +223,8 @@ if __name__ == "__main__":
 
 	rospy.init_node("hw5_mapKnowledge")
 
-    INIT_THETA = np.pi/2
-    current_state = np.array([2.5-0.125, 0.125, INIT_THETA])
+	INIT_THETA = np.pi/2
+	current_state = np.array([2.5-0.125, 0.125, INIT_THETA])
 
 	robot = Robot(init_state=current_state)
 	pub_twist = rospy.Publisher("/twist", Twist, queue_size=1)
@@ -233,32 +233,32 @@ if __name__ == "__main__":
 
 	world_matrix = np.zeros((10, 10)) # map size is 2.5m x 2.5m
 
-    world_map = Map(world)
-    move_cells = bfs_coverage(start=Node(9, 9), mapp=world_map)
-    xs = [node.get_x() for node in move_cells]
-    ys = [node.get_y() for node in move_cells]
-    coordinates = np.array(list(zip(xs, ys)))
+	world_map = Map(world_matrix)
+	move_cells = bfs_coverage(start=Node(9, 9), mapp=world_map)
+	xs = [node.get_x() for node in move_cells]
+	ys = [node.get_y() for node in move_cells]
+	coordinates = np.array(list(zip(xs, ys)))
 
-    waypoints = coordinate_to_waypoints(coordinates, world_matrix)
+	waypoints = coordinate_to_waypoints(coordinates, world_matrix)
 	condensed_wps = compress_waypoints(waypoints)
-    init_thetas = INIT_THETA * np.ones((condensed_wps.shape[0], 1))
-    theta_wps = np.hstack([condensed_wps, init_thetas])
-    theta_wps[1:, 2] = theta_from_prev(theta_wps[:]) # direction from previous to next
+	init_thetas = INIT_THETA * np.ones((condensed_wps.shape[0], 1))
+	theta_wps = np.hstack([condensed_wps, init_thetas])
+	theta_wps[1:, 2] = theta_from_prev(theta_wps[:]) # direction from previous to next
 
-    # add virtual waypoints to discourage twisting motion
-    trajectory = []
-    for i in range(len(theta_wps)-1):
-        trajectory.append(theta_wps[i])
-        virtual_wp = theta_wps[i].copy()
-        virtual_wp[2] = theta_wps[i+1][2]
-        trajectory.append(virtual_wp)
-    trajectory.append(theta_wps[-1])
-    trajectory = np.array(trajectory)
+	# add virtual waypoints to discourage twisting motion
+	trajectory = []
+	for i in range(len(theta_wps)-1):
+		trajectory.append(theta_wps[i])
+		virtual_wp = theta_wps[i].copy()
+		virtual_wp[2] = theta_wps[i+1][2]
+		trajectory.append(virtual_wp)
+	trajectory.append(theta_wps[-1])
+	trajectory = np.array(trajectory)
 
 	pid = PIDcontroller(0.0175, 0.001, 0.00025)
 
-    print("Desired Trajectory:")
-    print(trajectory)
+	print("Desired Trajectory:")
+	print(trajectory)
 
 	poses = [current_state]
 	for wp in trajectory:
@@ -279,13 +279,13 @@ if __name__ == "__main__":
 			pub_twist.publish(genTwistMsg(coord(update_value, current_state)))
 			time.sleep(0.1)
 
-            pub_twist.publish(genTwistMsg(np.array([0.0,0.0,0.0]))) # stop when updating
-            robot.update_state(update_value)
+			pub_twist.publish(genTwistMsg(np.array([0.0,0.0,0.0]))) # stop when updating
+			robot.update_state(update_value)
 			current_state = robot.get_state()
 			poses.append(current_state)
 			# print(current_state)
 
-    # stop the car and exit
+	# stop the car and exit
 	pub_twist.publish(genTwistMsg(np.array([0.0,0.0,0.0])))
 	# print(current_state)
 	poses.append(current_state)
