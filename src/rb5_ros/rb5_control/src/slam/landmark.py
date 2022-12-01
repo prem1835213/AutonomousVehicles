@@ -28,6 +28,9 @@ class Landmark:
     def get_theta(self):
         return self.theta
 
+    def __str__(self):
+        print("ID: {} x: {} y: {} theta{}".format(self.id, self.x, self.y, self.theta))
+
     def __eq__(self, other):
         """
         Method to override == comparison for class equality checking

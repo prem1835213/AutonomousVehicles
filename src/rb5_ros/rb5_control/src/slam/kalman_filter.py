@@ -169,3 +169,6 @@ class KalmanFilter:
 
 	def get_state(self):
 		return self.s
+
+    def get_landmarks_seen(self):
+        return self.landmarks_seen
