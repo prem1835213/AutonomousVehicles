@@ -96,6 +96,12 @@ class KalmanFilter:
 		self.s = self.s + np.matmul(K, error)
 		self.sigma = np.matmul(np.eye(self.s.shape[0]) - np.matmul(K, H), self.sigma)
 
+        # update landmarks_seen data structure for equality checking
+        for i in range(len(self.landmarks_seen)):
+            new_x, new_y, new_theta = self.s[3+3*i:6+3*i, 0]
+            old_lm = self.landmarks_seen[i]
+            self.landmarks_seen[i] = Landmark(id=old_lm[i].get_id(), x=new_x, y=new_y, theta=new_theta)
+
 	def _expand_state(self, known_status):
 		for tup in known_status:
             known, lm, index = tup
