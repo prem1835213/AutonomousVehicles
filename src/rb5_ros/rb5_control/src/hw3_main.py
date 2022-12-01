@@ -6,7 +6,7 @@ import sys
 import rospy
 from geometry_msgs.msg import Twist
 import numpy as np
-from kalman_filter import KalmanFilter
+from slam.kalman_filter import KalmanFilter
 from frame_collector import FrameCollector
 from april_detection.msg import AprilTagDetectionArray
 
@@ -174,7 +174,7 @@ if __name__ == "__main__":
 			kf.predict(update_value)
 			kf.update(fc.query())
 			current_state = kf.get_state()[:3, 0] # x, y, theta
-			
+
 			i = 0
 			while(np.linalg.norm(pid.getError(current_state, wp)) > 0.1) and i < 50:
 				i += 1
@@ -192,7 +192,7 @@ if __name__ == "__main__":
 
 		print("Landmarks seen: ", kf.landmarks_seen)
 		print(kf.get_state())
-		
+
 		with open("states_square_loop{}.npy".format(k), "wb") as f:
 			np.save(f, kf.get_state())
 		with open("landmarks_seen_square_loop{}.npy".format(k), "wb") as f:
