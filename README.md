@@ -3,7 +3,7 @@ Autonomous robotic system with control, visual feedback, SLAM, &amp; planning.
 
 - SLAM: Conducted using Kalman Filters
 
-- Visual Feedback was derived from (April Tags)[https://april.eecs.umich.edu/software/apriltag] placed in the environment.
+- Visual Feedback was derived from (AprilTags)[https://april.eecs.umich.edu/software/apriltag] placed in the environment.
 
 - System architecture was implemented using ROS
 
